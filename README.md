@@ -2,6 +2,9 @@
 
 Projeto modular da calculadora técnica de materiais IMPERTUDO.
 
+## Produção
+**Vercel:** https://impertudo-calculadora-v8-herbertyan.vercel.app
+
 ## Arquitetura
 - `index.html` — interface
 - `css/` — estilos separados
@@ -21,6 +24,6 @@ Projeto modular da calculadora técnica de materiais IMPERTUDO.
 - PWA/offline.
 
 ## Publicação
-Fluxo recomendado: `GitHub main → Vercel → link público`.
+Fluxo do projeto: `GitHub main → Vercel → link público`.
 
 > Ferramenta de pré-dimensionamento. A ficha técnica vigente e as condições reais da obra prevalecem.
