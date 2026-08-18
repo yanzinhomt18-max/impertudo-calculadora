@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0b6b43">
+<title>Calculadora Técnica IMPERTUDO — V8</title>
+<meta name="description" content="Calculadora técnica IMPERTUDO para áreas, reservatórios, impermeabilizantes, selantes, mantas, grautes, aditivos e outros materiais.">
+<link rel="stylesheet" href="./css/base.css">
+<link rel="stylesheet" href="./css/theme.css">
+</head>
+<body>
+<header>
+ <div class="wrap hero">
+  <div class="hero-brandline">
+   <img class="hero-logo" src="./assets/logo-impertudo.svg" alt="IMPERTUDO">
+   <button id="installAppBtn" class="install-btn hidden" onclick="installPWA()">Instalar aplicativo</button>
+  </div>
+  <div class="eyebrow">IMPERTUDO • ferramenta de pré-dimensionamento</div>
+  <h1>Calculadora Técnica de Materiais</h1>
+  <p>Calcule a área da obra, escolha o produto e veja o quantitativo estimado de material. Um fluxo simples para apoiar especificação, orçamento e compra.</p>
+  <div class="hero-tags"><span class="tag" id="countTag"></span><span class="tag">Base de catálogo: site oficial</span><span class="tag">Versão 8 • GitHub + Vercel</span></div>
+ </div>
+</header>
+
+<div class="wrap">
+ <nav class="tabs">
+  <button class="tab active" data-view="basic">Cálculo de área</button>
+  <button class="tab" data-view="assistant">Me ajude a escolher</button>
+  <button class="tab" data-view="products">Calcular por produto</button>
+  <button class="tab" data-view="reservoir">Reservatórios</button>
+  <button class="tab" data-view="catalog">Catálogo completo</button>
+  <button class="tab" data-view="proposal">Resumo / Proposta <span id="quoteCount" class="quote-count">0</span></button>
+ </nav>
+ <main>
+  <section id="basic" class="card view active">
+   <h2 class="title">Cálculo básico da área</h2>
+   <p class="sub">Use primeiro para descobrir a metragem. Depois você pode enviar a área direto para o cálculo do produto.</p>
+   <div class="quick-start">
+    <button onclick="document.querySelector('[data-view=&quot;basic&quot;]')?.click(); document.querySelector('#basicType').value='rectangle'; renderBasicFields();"><div class="quick-icon">m²</div><b>Piso / laje</b><span>Comprimento × largura.</span></button>
+    <button onclick="document.querySelector('[data-view=&quot;basic&quot;]')?.click(); document.querySelector('#basicType').value='wall'; renderBasicFields();"><div class="quick-icon">▯</div><b>Parede / fachada</b><span>Área com desconto de vãos.</span></button>
+    <button onclick="document.querySelector('[data-view=&quot;reservoir&quot;]')?.click();"><div class="quick-icon">◉</div><b>Reservatório</b><span>Formato, volume e impermeabilização.</span></button>
+    <button onclick="document.querySelector('[data-view=&quot;products&quot;]')?.click();"><div class="quick-icon">#</div><b>Produto específico</b><span>Busque pelo catálogo IMPERTUDO.</span></button>
+   </div>
+   <div class="grid2">
+    <div class="field"><label>Tipo de cálculo</label>
+     <select id="basicType">
+      <option value="rectangle">Piso / laje retangular</option><option value="wall">Parede / fachada</option><option value="floorWall">Piso + subida nas paredes</option><option value="circle">Área circular simples</option><option value="cylinder">Cilindro fechado — 2 × π × r × (r + h)</option><option value="multiple">Somar várias áreas</option>
+     </select>
+    </div>
+    <div class="field"><label>Margem adicional (%)</label><input id="basicWaste" type="number" value="0" min="0" step="1"></div>
+    <div id="basicFields" class="field full"></div>
+   </div>
+   <div class="actions"><button class="btn primary" onclick="calcBasic()">Calcular área</button><button class="btn secondary" onclick="sendAreaToProduct()">Usar área no produto</button></div>
+   <div id="basicResult" class="result hidden"></div>
+  </section>
+
+  <section id="assistant" class="card view">
+   <h2 class="title">Me ajude a escolher o sistema</h2>
+   <p class="sub">Responda algumas perguntas e veja opções cadastradas para a situação. A recomendação é um pré-direcionamento e deve ser validada conforme a ficha técnica e a condição real da obra.</p>
+   <div class="assistant-shell"><div class="grid2"><div class="field"><label>Onde será aplicado?</label><select id="assistArea" onchange="renderAssistantFields()"><option value="reservatorio">Reservatório / caixa d’água</option><option value="area-fria">Banheiro / cozinha / área fria</option><option value="laje">Laje / cobertura</option><option value="parede">Parede / fachada</option><option value="junta">Junta / selante PU</option><option value="manta">Impermeabilização com manta asfáltica</option></select></div><div id="assistDynamic" class="field"></div></div><div class="actions"><button class="btn primary" onclick="runAssistant()">Ver opções</button></div></div>
+   <div id="assistResult" class="result hidden"></div>
+  </section>
+
+  <section id="products" class="card view">
+   <h2 class="title">Cálculo por produto</h2><p class="sub">Selecione o produto e consulte primeiro a ficha rápida de consumo. Os produtos com dado técnico cadastrado preenchem o cálculo conforme a aplicação; os demais continuam aceitando o consumo da ficha técnica.</p>
+   <div class="product-layout"><aside class="sidebar"><div class="searchrow"><input id="prodSearch" placeholder="Pesquisar produto..."><select id="prodCat"></select></div><div id="prodList" class="product-list"></div></aside><div><div id="productPanel"></div></div></div>
+  </section>
+
+  <section id="reservoir" class="card view">
+   <h2 class="title">Reservatórios e caixas d’água</h2><p class="sub">Calcula a superfície interna e a capacidade. O sistema distingue formato e condição da estrutura.</p>
+   <div class="grid2"><div class="field"><label>Formato</label><select id="resShape"><option value="ret">Retangular / quadrado</option><option value="cyl">Redondo / cilíndrico</option></select></div><div class="field"><label>Situação</label><select id="resCond"><option value="elevado">Elevado</option><option value="apoiado">Apoiado</option><option value="enterrado">Enterrado</option></select></div><div id="resFields" class="field full"></div><div class="field"><label>Produto principal</label><select id="resProduct"><option value="topflex">IMPERTUDO TOP FLEX FIBRAS</option><option value="manual">Outro produto — consumo manual</option></select></div><div class="field"><label>Margem adicional (%)</label><input id="resWaste" type="number" value="5" min="0" step="1"></div><div class="field full"><label><input id="resCeiling" type="checkbox" style="width:auto"> Incluir teto interno</label></div></div>
+   <div class="actions"><button class="btn primary" onclick="calcReservoir()">Calcular reservatório</button><button id="resAddBtn" class="btn secondary hidden" onclick="addResultToQuote('reservoir')">Adicionar ao resumo</button></div><div id="resResult" class="result hidden"></div>
+  </section>
+
+  <section id="proposal" class="card view">
+   <div class="proposal-head"><div><h2 class="title">Resumo / Proposta</h2><p class="sub">Monte uma lista consolidada com os produtos calculados e compartilhe com o cliente.</p></div><span class="offline-badge">Disponível offline após instalação</span></div>
+   <div class="grid2 proposal-client"><div class="field"><label>Cliente / obra</label><input id="quoteClient" placeholder="Ex.: Residencial, condomínio ou cliente" oninput="saveProposalSettings()"></div><div class="field"><label>Responsável / consultor</label><input id="quoteConsultant" placeholder="Nome do responsável" oninput="saveProposalSettings()"></div></div>
+   <div id="quoteEmpty" class="quote-empty">Nenhum item adicionado. Faça um cálculo e clique em <b>Adicionar ao resumo</b>.</div><div id="quoteList" class="quote-list"></div>
+   <div class="commercial-box"><div class="commercial-head"><div><h3>Condições comerciais</h3><p>Informe os preços unitários dos itens acima e escolha como o cliente pretende pagar.</p></div><span class="commercial-badge">R$</span></div>
+    <div class="payment-options"><button id="payPix" class="pay-option active" onclick="setPaymentMethod('pix')"><b>PIX</b><span>À vista • com desconto</span></button><button id="payCash" class="pay-option" onclick="setPaymentMethod('dinheiro')"><b>Dinheiro</b><span>À vista • com desconto</span></button><button id="payCard" class="pay-option" onclick="setPaymentMethod('cartao')"><b>Cartão</b><span>Sem desconto</span></button></div>
+    <div class="grid2 commercial-fields"><div class="field"><label>Desconto para PIX / Dinheiro (%)</label><input id="cashDiscount" type="number" value="0" min="0" max="100" step="0.1" oninput="updateCommercialTotals();saveProposalSettings()"></div><div class="field"><label>Observação de pagamento</label><input id="paymentNote" placeholder="Ex.: cartão em até 3x sem juros" oninput="saveProposalSettings()"></div></div>
+    <div class="financial-grid"><div class="financial-card"><span>Total dos materiais</span><b id="quoteGross">R$ 0,00</b><small>Valor sem desconto</small></div><div class="financial-card discount-card"><span>Desconto à vista</span><b id="quoteDiscountValue">R$ 0,00</b><small id="quoteDiscountPct">0%</small></div><div class="financial-card cash-card"><span>PIX / Dinheiro</span><b id="quoteCashTotal">R$ 0,00</b><small>Valor final à vista</small></div><div class="financial-card card-card"><span>Cartão</span><b id="quoteCardTotal">R$ 0,00</b><small>Sem desconto</small></div></div><div id="selectedPaymentSummary" class="selected-payment"></div>
+   </div>
+   <div class="actions"><button class="btn primary" onclick="generateProposalPDF()">Gerar PDF / Imprimir</button><button class="btn secondary" onclick="shareWhatsApp()">WhatsApp</button><button class="btn ghost" onclick="copyProposal()">Copiar resumo</button><button class="btn ghost danger" onclick="clearQuote()">Limpar</button></div><div class="note">O WhatsApp precisa de internet. Em uma visita sem sinal, a proposta continua salva no aparelho e pode ser copiada ou enviada depois.</div>
+  </section>
+
+  <section id="catalog" class="card view"><h2 class="title">Catálogo atual</h2><p class="sub">Relação dos produtos publicados no site da IMPERTUDO, agrupados por família de cálculo.</p><div class="grid2" style="margin-bottom:14px"><div class="field"><label>Pesquisar</label><input id="catSearch" placeholder="Ex.: PU, manta, graute, chapisco"></div><div class="field"><label>Categoria</label><select id="catFilter"></select></div></div><div id="catalogGrid" class="catalog-grid"></div></section>
+  <div class="footer">Esta ferramenta é de pré-dimensionamento. A ficha técnica vigente, a inspeção da obra, o projeto de impermeabilização e a orientação do Departamento Técnico prevalecem. Consumos variam com porosidade, irregularidade, geometria, ferramenta, temperatura e perdas de aplicação.</div>
+ </main>
+</div>
+<script src="./data/products-1.js"></script><script src="./data/products-2.js"></script><script src="./data/products-3.js"></script><script src="./data/products-4.js"></script><script src="./data/products-5.js"></script><script src="./data/products.js"></script><script src="./js/core.js"></script><script src="./js/product-ui.js"></script><script src="./js/packages.js"></script><script src="./js/calculations.js"></script><script src="./js/proposal.js"></script><script src="./js/assistant.js"></script>
+</body>
+</html>
