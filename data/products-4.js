@@ -1,0 +1,15 @@
+window.IMPERTUDO_PRODUCTS_4 = [
+  {"name":"IMPERTUDO MANTA ASFÁLTICA III B POLIÉSTER","cat":"Mantas asfálticas","calc":"roll","pack":"Rolo nominal 1 x 10 m","rollArea":10,"url":"https://impertudo.com.br/produtos/impertudo-manta-asfaltica-iii-b-aluminazada-poliester/"},
+  {"name":"IMPERTUDO CHAPISCO CONCENTRADO","cat":"Chapiscos e aderência","calc":"dilution","pack":"Consultar ficha técnica","note":"Diluição de referência do site: 1:7 (produto:água) para chapisco.","url":"https://impertudo.com.br/produtos/impertudo-chapisco-concentrado/","tech":{"status":"confirmed","source":"Base técnica da calculadora","summary":"Diluição 1:7 produto:água","lines":[["Diluição de referência","1:7","1 parte de produto para 7 de água"]]}},
+  {"name":"IMPERTUDO PU CONSTRUÇÃO","cat":"Selantes e PU","calc":"joint","pack":"Consultar ficha técnica","url":"https://impertudo.com.br/produtos/impertudo-pu-construcao/"},
+  {"name":"IMPERTUDO MEMBRANA ALUMÍNIO","cat":"Membranas acrílicas","calc":"area_manual","pack":"3 kg / 10 kg","url":"https://impertudo.com.br/produtos/impertudo-membrana-aluminio/"},
+  {"name":"IMPERTUDO PAREDE PREMIUM","cat":"Fachadas e paredes","calc":"usage_select","pack":"3,6 kg / 18 kg / 200 kg","url":"https://impertudo.com.br/produtos/impertudo-parede-premium/","tech":{"status":"confirmed","source":"Ficha técnica Rev. 04/2025","summary":"120 a 360 g/m² conforme função","lines":[["Como selador","120 g/m²","1 demão"],["Como impermeabilizante","240 g/m²","2 demãos"],["Como acabamento","360 g/m²","3 demãos"]],"calc_type":"usage_select"}},
+  {"name":"IMPERTUDO MANTA ASFÁLTICA IV B POLIÉSTER","cat":"Mantas asfálticas","calc":"roll_manual","pack":"Consultar ficha técnica","url":"https://impertudo.com.br/produtos/impertudo-manta-asfaltica-iv-b-poliester/"},
+  {"name":"IMPERTUDO GRAUTE TIX","cat":"Grautes e reparos","calc":"volume_manual","pack":"25 kg","url":"https://impertudo.com.br/produtos/impertudo-graute-tix/"},
+  {"name":"TUBO DRENO","cat":"Drenagem","calc":"linear_manual","pack":"Consultar rolo/diâmetro","url":"https://impertudo.com.br/produtos/tubo-dreno/"},
+  {"name":"IMPERTUDO DESFORMA MD","cat":"Desmoldantes","calc":"area_manual","pack":"Consultar ficha técnica","url":"https://impertudo.com.br/produtos/impertudo-desforma-md/"},
+  {"name":"IMPERTUDO RAPIDÍSSIMO PÓ","cat":"Tamponamento","calc":"manual","pack":"Consultar ficha técnica","url":"https://impertudo.com.br/produtos/impertudo-rapidissimo-po/"},
+  {"name":"IMPERTUDO EMULSÃO ANTI-RAIZ","cat":"Jardineiras e antiraiz","calc":"area_manual","pack":"Consultar ficha técnica","url":"https://impertudo.com.br/produtos/impertudo-emulsao-anti-raiz/"},
+  {"name":"IMPERTUDO ADMIX CRISTAL C","cat":"Aditivos impermeabilizantes","calc":"concrete_dose","pack":"Consultar ficha técnica","url":"https://impertudo.com.br/produtos/impertudo-admix-cristal-c/"},
+  {"name":"MACROFIBRA SINTÉTICA POLIPROPILENO","cat":"Fibras e adições","calc":"concrete_dose","pack":"Consultar ficha técnica","url":"https://impertudo.com.br/produtos/macrofibra-sintetica-polipropileno/"}
+];
