@@ -1,29 +1,15 @@
 # Calculadora Técnica IMPERTUDO
 
-Projeto modular da calculadora técnica de materiais IMPERTUDO.
+Projeto da calculadora técnica de materiais IMPERTUDO.
 
-## Produção
-**Vercel:** https://impertudo-calculadora-v8-herbertyan.vercel.app
+## V8.2 em homologação
 
-## Arquitetura
-- `index.html` — interface
-- `css/` — estilos separados
-- `js/` — regras por módulo
-- `data/` — catálogo separado do código
-- `assets/` — identidade visual e ícone PWA
-- `sw.js` + `manifest.webmanifest` — modo offline
-
-## Recursos
-- cálculo de área, reservatórios, juntas e produtos;
-- ficha rápida de consumo;
-- assistente “Me ajude a escolher”;
-- combinação de embalagens buscando menor sobra;
-- resumo/proposta com preço unitário;
-- PIX/Dinheiro com desconto e cartão sem desconto;
-- PDF/WhatsApp;
-- PWA/offline.
-
-## Publicação
-Fluxo do projeto: `GitHub main → Vercel → link público`.
-
-> Ferramenta de pré-dimensionamento. A ficha técnica vigente e as condições reais da obra prevalecem.
+- cálculo de área por m² direto, retângulo ou perímetro × altura;
+- perdas e demãos parametrizadas;
+- IMPERTUDO TOP em reservatórios;
+- faixa mínima e máxima de embalagens para consumos variáveis;
+- cenário máximo destacado como referência recomendada de compra;
+- desconto item a item em % ou R$;
+- PDF nativo com jsPDF;
+- catálogo persistido em localStorage;
+- build single-file para Vercel, mantendo somente o Service Worker separado.

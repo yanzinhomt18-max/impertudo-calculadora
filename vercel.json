@@ -1,4 +1,6 @@
 {
+  "buildCommand": "node build-single.js",
+  "outputDirectory": "dist",
   "cleanUrls": true,
   "trailingSlash": false
 }
