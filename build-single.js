@@ -34,7 +34,7 @@ html=html.replace(/<script src="(\.\/[^\"]+\.js)"><\/script>/g,(_,src)=>{
 });
 
 const jspdf='<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.2.1/jspdf.umd.min.js" crossorigin="anonymous"></script>';
-const overlayFiles=['./js/v82-area.js','./js/v82-calc.js','./js/v82-proposal.js','./js/v82-init.js'];
+const overlayFiles=['./js/v82-area.js','./js/v82-calc.js','./js/v82-package-range.js','./js/v82-proposal.js','./js/v82-init.js'];
 const overlay=overlayFiles.map(f=>`<script>\n${read(f).replace(/<\/script>/gi,'<\\/script>')}\n</script>`).join('\n');
 html=html.replace('</body>',`${jspdf}\n${overlay}\n</body>`);
 html=html.replace(/Versão 8[^<]*/,'Versão 8.2 • cálculo paramétrico + PDF nativo + PWA');
