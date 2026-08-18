@@ -1,0 +1,19 @@
+{
+  "name": "Calculadora Técnica IMPERTUDO",
+  "short_name": "IMPERTUDO Calc",
+  "description": "Cálculo técnico de áreas, consumos, embalagens e propostas IMPERTUDO.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f8f6",
+  "theme_color": "#087548",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "./assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
