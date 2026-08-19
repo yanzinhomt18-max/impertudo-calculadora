@@ -2,7 +2,7 @@ import { productsById, productDatabase } from '../db'
 import type { ProductRecord } from '../db/types'
 import { applyWaste } from './geometry'
 import { calculatePackageRange, optimizePackageMix, type PackageCountResult, type PackageMixResult } from './packaging'
-import { parseConsumptionUnit, type ConsumptionRule } from './consumption'
+import { parseConsumptionUnit } from './consumption'
 import { roundQuantity, type QuantityUnit } from './units'
 
 interface RangeRule {
@@ -10,6 +10,7 @@ interface RangeRule {
   label?: string
   min: number
   max: number
+  consumption?: number
   unit: string
   coats?: number
   coatsMin?: number
@@ -75,23 +76,17 @@ function technicalOf(product: ProductRecord): Record<string, unknown> {
     : {}
 }
 
-function rangeRules(product: ProductRecord, key: 'consumptionRules' | 'yieldRules' | 'applicationProfiles' | 'modes'): RangeRule[] {
+function rangeRules(product: ProductRecord, key: 'consumptionRules' | 'yieldRules' | 'applicationProfiles'): RangeRule[] {
   const value = technicalOf(product)[key]
   if (!Array.isArray(value)) return []
-  return value.filter((item): item is RangeRule => {
-    if (!item || typeof item !== 'object') return false
+  return value.flatMap((item) => {
+    if (!item || typeof item !== 'object') return []
     const rule = item as Partial<RangeRule>
     const min = typeof rule.min === 'number' ? rule.min : rule.consumption
     const max = typeof rule.max === 'number' ? rule.max : rule.consumption
-    return typeof rule.id === 'string'
-      && typeof min === 'number'
-      && typeof max === 'number'
-      && typeof rule.unit === 'string'
-  }).map((item) => ({
-    ...item,
-    min: typeof item.min === 'number' ? item.min : (item as unknown as { consumption: number }).consumption,
-    max: typeof item.max === 'number' ? item.max : (item as unknown as { consumption: number }).consumption
-  }))
+    if (typeof rule.id !== 'string' || typeof min !== 'number' || typeof max !== 'number' || typeof rule.unit !== 'string') return []
+    return [{ ...rule, id: rule.id, min, max, unit: rule.unit } as RangeRule]
+  })
 }
 
 function jointReference(product: ProductRecord): JointReference | null {
@@ -315,9 +310,7 @@ function multiMode(product: ProductRecord, input: ProductCalculationInput): Prod
 export function calculateProduct(input: ProductCalculationInput): ProductCalculationResult {
   const product = productsById.get(input.productId)
   if (!product) throw new Error('Produto não encontrado no banco V9.')
-  if (!isProductAutoCalculable(product)) {
-    throw new Error(`${product.name} ainda não está liberado para cálculo automático na V9.`)
-  }
+  if (!isProductAutoCalculable(product)) throw new Error(`${product.name} ainda não está liberado para cálculo automático na V9.`)
 
   switch (product.calculationModel) {
     case 'area_consumption':
