@@ -1,0 +1,5 @@
+.appNav{grid-template-columns:repeat(6,1fr)}
+.areaEditor{display:grid;gap:12px;margin-bottom:12px}.areaEditor .fieldGrid{margin:0}
+@media(max-width:1050px){.appNav{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:680px){.appNav{grid-template-columns:1fr 1fr}}
+@media(max-width:430px){.appNav{grid-template-columns:1fr}}
