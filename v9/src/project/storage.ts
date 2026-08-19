@@ -5,10 +5,7 @@ const STORAGE_KEY = 'impertudo-v9-project-v1'
 function isProjectState(value: unknown): value is ProjectState {
   if (!value || typeof value !== 'object') return false
   const project = value as Partial<ProjectState>
-  return project.version === 1
-    && typeof project.id === 'string'
-    && Array.isArray(project.calculations)
-    && typeof project.pricing === 'object'
+  return project.version === 1 && typeof project.id === 'string' && Array.isArray(project.calculations) && typeof project.pricing === 'object'
 }
 
 export function loadProject(): ProjectState {
@@ -17,7 +14,8 @@ export function loadProject(): ProjectState {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return createEmptyProject()
     const parsed: unknown = JSON.parse(raw)
-    return isProjectState(parsed) ? parsed : createEmptyProject()
+    if (!isProjectState(parsed)) return createEmptyProject()
+    return { ...parsed, checklist: parsed.checklist && typeof parsed.checklist === 'object' ? parsed.checklist : {} }
   } catch {
     return createEmptyProject()
   }
@@ -27,7 +25,6 @@ export function saveProject(project: ProjectState): void {
   if (typeof localStorage === 'undefined') return
   localStorage.setItem(STORAGE_KEY, JSON.stringify(project))
 }
-
 export function clearStoredProject(): void {
   if (typeof localStorage === 'undefined') return
   localStorage.removeItem(STORAGE_KEY)
