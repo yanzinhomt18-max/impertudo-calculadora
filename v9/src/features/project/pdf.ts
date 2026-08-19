@@ -3,6 +3,7 @@ import type { ProjectState } from '../../project/types'
 
 const money = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 const qty = (value: number) => new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(value)
+const datePt = (value: string) => value ? new Date(`${value}T12:00:00`).toLocaleDateString('pt-BR') : '—'
 
 async function loadLogo(): Promise<{ data: string; ratio: number } | null> {
   return new Promise((resolve) => {
@@ -76,12 +77,12 @@ export async function generateProjectPdf(project: ProjectState, materials: Conso
       headerX = margin
     }
   }
-  text('PROPOSTA / RESUMO DE MATERIAIS', headerX, y + 7, 15, true, green)
-  text('Calculadora Técnica IMPERTUDO • V9.0', headerX, y + 14, 8.5, true, dark)
+  text('PROPOSTA COMERCIAL', headerX, y + 7, 15, true, green)
+  text(`Nº ${project.proposalNumber || '—'} • ${datePt(project.proposalDate)}`, headerX, y + 14, 8.5, true, dark)
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(7)
   doc.setTextColor(...muted)
-  doc.text(`Emitido em ${new Date().toLocaleString('pt-BR')}`, pageW - margin, y + 20, { align: 'right' })
+  doc.text(`Gerado pela Calculadora Técnica IMPERTUDO V9 • ${new Date().toLocaleString('pt-BR')}`, pageW - margin, y + 20, { align: 'right' })
   y += headerH + 6
   line(y)
   y += 7
@@ -98,40 +99,43 @@ export async function generateProjectPdf(project: ProjectState, materials: Conso
   text(meta, margin, y, 8, false, muted, contentW)
   y += 10
 
-  text('QUANTITATIVO CONSOLIDADO', margin, y, 10, true, green)
-  y += 6
-  for (const material of materials) {
-    ensure(18)
-    doc.setFillColor(244, 249, 246)
-    doc.roundedRect(margin, y - 3, contentW, 14, 2, 2, 'F')
-    text(material.productName, margin + 3, y + 1, 9, true, dark, 92)
-    const technical = material.minQuantity === material.maxQuantity
-      ? `${qty(material.maxQuantity)} ${material.unit}`
-      : `${qty(material.minQuantity)} a ${qty(material.maxQuantity)} ${material.unit}`
-    text(`Necessidade: ${technical}`, 108, y + 1, 7, false, muted)
-    const mix = material.recommendedMix?.items.map((item) => `${item.count} × ${item.package.quantity} ${item.package.unit}`).join(' + ')
-    text(mix ? `Compra recomendada: ${mix}` : 'Embalagem comercial ainda não definida.', 108, y + 6, 7, true, dark, 84)
-    y += 18
+  if (materials.length) {
+    text('QUANTITATIVO CONSOLIDADO DE MATERIAIS', margin, y, 10, true, green)
+    y += 6
+    for (const material of materials) {
+      ensure(18)
+      doc.setFillColor(244, 249, 246)
+      doc.roundedRect(margin, y - 3, contentW, 14, 2, 2, 'F')
+      text(material.productName, margin + 3, y + 1, 9, true, dark, 92)
+      const technical = material.minQuantity === material.maxQuantity
+        ? `${qty(material.maxQuantity)} ${material.unit}`
+        : `${qty(material.minQuantity)} a ${qty(material.maxQuantity)} ${material.unit}`
+      text(`Necessidade: ${technical}`, 108, y + 1, 7, false, muted)
+      const mix = material.recommendedMix?.items.map((item) => `${item.count} × ${item.package.quantity} ${item.package.unit}`).join(' + ')
+      text(mix ? `Compra recomendada: ${mix}` : 'Embalagem comercial ainda não definida.', 108, y + 6, 7, true, dark, 84)
+      y += 18
+    }
   }
 
   ensure(18)
-  text('CONDIÇÕES COMERCIAIS', margin, y, 10, true, green)
+  text('ITENS E CONDIÇÕES COMERCIAIS', margin, y, 10, true, green)
   y += 7
   if (lines.length) {
     for (const row of lines) {
       ensure(14)
       text(row.productName, margin, y, 8, true, dark, 77)
-      text(`${row.count} × ${row.packageLabel}`, 92, y, 7, false, muted, 55)
+      text(`${qty(row.count)} × ${row.packageLabel}`, 92, y, 7, false, muted, 55)
       text(money(row.unitPrice), 151, y, 7, false, dark)
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(8)
       doc.setTextColor(...dark)
       doc.text(money(row.net), pageW - margin, y, { align: 'right' })
-      line(y + 3)
-      y += 8
+      if (row.discount > 0) text(`Desc.: ${money(row.discount)}`, 151, y + 3.5, 6, false, muted)
+      line(y + 5)
+      y += 10
     }
   } else {
-    text('Nenhum item comercial consolidado.', margin, y, 8, false, muted)
+    text('Nenhum item comercial informado.', margin, y, 8, false, muted)
     y += 8
   }
 
@@ -172,6 +176,7 @@ export async function generateProjectPdf(project: ProjectState, materials: Conso
   line(y)
   y += 6
   text('Pré-dimensionamento técnico. Conferir ficha técnica vigente, projeto, condições reais da obra e medidas in loco antes da compra e execução.', margin, y, 7, false, muted, contentW)
-  const safe = projectName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase()
-  doc.save(`impertudo-v9-${safe || 'projeto'}.pdf`)
+  const safeProject = projectName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase()
+  const safeNumber = (project.proposalNumber || 'proposta').replace(/[^a-z0-9-]+/gi, '-').toLowerCase()
+  doc.save(`impertudo-${safeNumber}-${safeProject || 'projeto'}.pdf`)
 }

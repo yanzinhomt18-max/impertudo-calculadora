@@ -10,7 +10,18 @@ import {
   serializeProjectBackup,
   upsertProject
 } from './storage'
-import { createEmptyProject, createId, type PaymentMethod, type PricingRecord, type ProjectCalculation, type ProjectState } from './types'
+import {
+  createEmptyProject,
+  createId,
+  createManualQuoteItem,
+  createProposalNumber,
+  type ManualQuoteCategory,
+  type ManualQuoteItem,
+  type PaymentMethod,
+  type PricingRecord,
+  type ProjectCalculation,
+  type ProjectState
+} from './types'
 import {
   applyCatalogToPricing,
   loadPriceCatalog,
@@ -29,7 +40,7 @@ interface ProjectContextValue {
   isCurrentSaved: boolean
   storageOk: boolean
   priceCatalog: PriceCatalog
-  updateMeta: (patch: Partial<Pick<ProjectState, 'client' | 'projectName' | 'location' | 'consultant' | 'validityDays' | 'notes'>>) => void
+  updateMeta: (patch: Partial<Pick<ProjectState, 'client' | 'projectName' | 'location' | 'consultant' | 'proposalNumber' | 'proposalDate' | 'validityDays' | 'notes'>>) => void
   addCalculation: (calculation: Omit<ProjectCalculation, 'id' | 'createdAt'>) => string
   removeCalculation: (id: string) => void
   updatePricing: (key: string, patch: Partial<PricingRecord>) => void
@@ -38,6 +49,9 @@ interface ProjectContextValue {
   applyCatalogToCurrentProject: (keys?: string[], onlyMissing?: boolean) => number
   exportPriceCatalog: () => string
   importPriceCatalog: (text: string) => number
+  addManualItem: (category?: ManualQuoteCategory) => string
+  updateManualItem: (id: string, patch: Partial<Omit<ManualQuoteItem, 'id'>>) => void
+  removeManualItem: (id: string) => void
   setCashDiscountPct: (value: number) => void
   setPaymentMethod: (value: PaymentMethod) => void
   setChecklistItem: (key: string, checked: boolean) => void
@@ -119,6 +133,17 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       }))
       return Object.keys(imported.entries).length
     },
+    addManualItem(category = 'service') {
+      const item = createManualQuoteItem(category)
+      setProject((current) => touch({ ...current, manualItems: [...current.manualItems, item] }))
+      return item.id
+    },
+    updateManualItem(id, patch) {
+      setProject((current) => touch({ ...current, manualItems: current.manualItems.map((item) => item.id === id ? { ...item, ...patch } : item) }))
+    },
+    removeManualItem(id) {
+      setProject((current) => touch({ ...current, manualItems: current.manualItems.filter((item) => item.id !== id) }))
+    },
     setCashDiscountPct(value) {
       const safe = Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0))
       setProject((current) => touch({ ...current, cashDiscountPct: safe }))
@@ -134,14 +159,18 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     },
     duplicateCurrentProject() {
       const now = new Date().toISOString()
+      const id = createId('project')
       const duplicate: ProjectState = {
         ...project,
-        id: createId('project'),
+        id,
+        proposalNumber: createProposalNumber(id, new Date(now)),
+        proposalDate: now.slice(0, 10),
         projectName: project.projectName ? `${project.projectName} — cópia` : 'Nova obra — cópia',
         createdAt: now,
         updatedAt: now,
         calculations: project.calculations.map((calculation) => ({ ...calculation, id: createId('calc'), createdAt: now })),
         pricing: { ...project.pricing },
+        manualItems: project.manualItems.map((item) => ({ ...item, id: createId('manual') })),
         checklist: { ...project.checklist }
       }
       setSavedProjects((current) => persistLibrary(upsertProject(current, duplicate)))

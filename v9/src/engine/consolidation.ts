@@ -1,6 +1,6 @@
 import { productsById } from '../db'
 import type { PackageOption } from '../db/types'
-import type { PricingRecord, ProjectCalculation, ProjectState } from '../project/types'
+import type { ManualQuoteItem, PricingRecord, ProjectCalculation, ProjectState } from '../project/types'
 import { calculatePackageRange, optimizePackageMix, type PackageCountResult, type PackageMixResult } from './packaging'
 import { assertCompatibleUnit, fromBaseQuantity, toBaseQuantity, type QuantityUnit } from './units'
 
@@ -31,6 +31,8 @@ export interface CommercialLine {
   gross: number
   discount: number
   net: number
+  source?: 'material' | 'manual'
+  manualItemId?: string
 }
 
 export interface QuoteTotals {
@@ -158,6 +160,12 @@ function safePricing(pricing: PricingRecord | undefined): PricingRecord {
   }
 }
 
+function discountFor(gross: number, type: 'pct' | 'value', value: number): number {
+  return Math.min(gross, type === 'pct'
+    ? gross * Math.min(100, Math.max(0, value)) / 100
+    : Math.max(0, value))
+}
+
 export function buildCommercialLines(materials: ConsolidatedMaterial[], pricing: ProjectState['pricing']): CommercialLine[] {
   const lines: CommercialLine[] = []
   for (const material of materials) {
@@ -166,9 +174,7 @@ export function buildCommercialLines(materials: ConsolidatedMaterial[], pricing:
         const key = pricingKey(material.productId, item.package)
         const values = safePricing(pricing[key])
         const gross = item.count * values.unitPrice
-        const discount = Math.min(gross, values.discountType === 'pct'
-          ? gross * Math.min(100, values.discountValue) / 100
-          : values.discountValue)
+        const discount = discountFor(gross, values.discountType, values.discountValue)
         lines.push({
           key,
           productId: material.productId,
@@ -179,7 +185,8 @@ export function buildCommercialLines(materials: ConsolidatedMaterial[], pricing:
           ...values,
           gross,
           discount,
-          net: Math.max(0, gross - discount)
+          net: Math.max(0, gross - discount),
+          source: 'material'
         })
       }
       continue
@@ -190,9 +197,7 @@ export function buildCommercialLines(materials: ConsolidatedMaterial[], pricing:
       const key = pricingKey(material.productId, preferred.package)
       const values = safePricing(pricing[key])
       const gross = preferred.maxCount * values.unitPrice
-      const discount = Math.min(gross, values.discountType === 'pct'
-        ? gross * Math.min(100, values.discountValue) / 100
-        : values.discountValue)
+      const discount = discountFor(gross, values.discountType, values.discountValue)
       lines.push({
         key,
         productId: material.productId,
@@ -203,7 +208,8 @@ export function buildCommercialLines(materials: ConsolidatedMaterial[], pricing:
         ...values,
         gross,
         discount,
-        net: Math.max(0, gross - discount)
+        net: Math.max(0, gross - discount),
+        source: 'material'
       })
       continue
     }
@@ -211,9 +217,7 @@ export function buildCommercialLines(materials: ConsolidatedMaterial[], pricing:
     const key = pricingKey(material.productId, null, material.unit)
     const values = safePricing(pricing[key])
     const gross = material.maxQuantity * values.unitPrice
-    const discount = Math.min(gross, values.discountType === 'pct'
-      ? gross * Math.min(100, values.discountValue) / 100
-      : values.discountValue)
+    const discount = discountFor(gross, values.discountType, values.discountValue)
     lines.push({
       key,
       productId: material.productId,
@@ -224,10 +228,40 @@ export function buildCommercialLines(materials: ConsolidatedMaterial[], pricing:
       ...values,
       gross,
       discount,
-      net: Math.max(0, gross - discount)
+      net: Math.max(0, gross - discount),
+      source: 'material'
     })
   }
   return lines
+}
+
+export function buildManualCommercialLines(items: ManualQuoteItem[]): CommercialLine[] {
+  return items.flatMap((item) => {
+    const description = item.description.trim()
+    if (!description) return []
+    const count = Number.isFinite(item.quantity) && item.quantity > 0 ? item.quantity : 1
+    const unitPrice = Math.max(0, Number(item.unitPrice) || 0)
+    const discountType = item.discountType === 'value' ? 'value' as const : 'pct' as const
+    const discountValue = Math.max(0, Number(item.discountValue) || 0)
+    const gross = count * unitPrice
+    const discount = discountFor(gross, discountType, discountValue)
+    return [{
+      key: `manual|${item.id}`,
+      productId: `manual:${item.id}`,
+      productName: description,
+      package: null,
+      packageLabel: item.unitLabel || 'un.',
+      count,
+      unitPrice,
+      discountType,
+      discountValue,
+      gross,
+      discount,
+      net: Math.max(0, gross - discount),
+      source: 'manual' as const,
+      manualItemId: item.id
+    }]
+  })
 }
 
 export function calculateQuoteTotals(lines: CommercialLine[], cashDiscountPct: number, paymentMethod: ProjectState['paymentMethod']): QuoteTotals {

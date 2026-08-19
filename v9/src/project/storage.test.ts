@@ -15,6 +15,17 @@ describe('biblioteca de obras', () => {
     expect(normalized?.checklist).toEqual({})
   })
 
+  it('migra obra anterior à proposta numerada e aos itens manuais', () => {
+    const raw = { ...project('legacy-v9', 'Obra antiga', '2026-08-19T00:00:00Z') } as Record<string, unknown>
+    delete raw.proposalNumber
+    delete raw.proposalDate
+    delete raw.manualItems
+    const normalized = normalizeProjectState(raw)
+    expect(normalized?.proposalNumber).toMatch(/^IMP-/)
+    expect(normalized?.proposalDate).toBeTruthy()
+    expect(normalized?.manualItems).toEqual([])
+  })
+
   it('deduplica projetos pelo id mantendo a versão mais recente', () => {
     const older = project('a', 'Antiga', '2026-08-18T10:00:00Z')
     const newer = project('a', 'Nova', '2026-08-19T10:00:00Z')

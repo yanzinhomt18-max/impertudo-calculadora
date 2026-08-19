@@ -1,4 +1,4 @@
-import { createEmptyProject, type ProjectState } from './types'
+import { createEmptyProject, createProposalNumber, type ManualQuoteItem, type ProjectState } from './types'
 
 const STORAGE_KEY = 'impertudo-v9-project-v1'
 const LIBRARY_KEY = 'impertudo-v9-project-library-v1'
@@ -10,18 +10,43 @@ export interface ProjectBackup {
   projects: ProjectState[]
 }
 
+function normalizeManualItems(value: unknown): ManualQuoteItem[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((candidate) => {
+    if (!candidate || typeof candidate !== 'object') return []
+    const item = candidate as Partial<ManualQuoteItem>
+    if (typeof item.id !== 'string' || !item.id) return []
+    const category = item.category === 'freight' || item.category === 'other' ? item.category : 'service'
+    return [{
+      id: item.id,
+      category,
+      description: typeof item.description === 'string' ? item.description : '',
+      quantity: Number.isFinite(Number(item.quantity)) && Number(item.quantity) > 0 ? Number(item.quantity) : 1,
+      unitLabel: typeof item.unitLabel === 'string' && item.unitLabel ? item.unitLabel : 'un.',
+      unitPrice: Number.isFinite(Number(item.unitPrice)) && Number(item.unitPrice) >= 0 ? Number(item.unitPrice) : 0,
+      discountType: item.discountType === 'value' ? 'value' : 'pct',
+      discountValue: Number.isFinite(Number(item.discountValue)) && Number(item.discountValue) >= 0 ? Number(item.discountValue) : 0
+    }]
+  })
+}
+
 export function normalizeProjectState(value: unknown): ProjectState | null {
   if (!value || typeof value !== 'object') return null
   const project = value as Partial<ProjectState>
   if (project.version !== 1 || typeof project.id !== 'string' || !Array.isArray(project.calculations) || !project.pricing || typeof project.pricing !== 'object') return null
   const base = createEmptyProject()
+  const createdAt = typeof project.createdAt === 'string' ? project.createdAt : base.createdAt
   return {
     ...base,
     ...project,
     version: 1,
     id: project.id,
+    createdAt,
+    proposalNumber: typeof project.proposalNumber === 'string' && project.proposalNumber ? project.proposalNumber : createProposalNumber(project.id, new Date(createdAt)),
+    proposalDate: typeof project.proposalDate === 'string' && project.proposalDate ? project.proposalDate : createdAt.slice(0, 10),
     calculations: project.calculations,
     pricing: project.pricing,
+    manualItems: normalizeManualItems(project.manualItems),
     checklist: project.checklist && typeof project.checklist === 'object' ? project.checklist : {}
   }
 }
