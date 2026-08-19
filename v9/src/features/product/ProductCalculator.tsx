@@ -63,6 +63,7 @@ export default function ProductCalculator({ preferredProductId }: { preferredPro
   const jointMode = isJointModel(product.calculationModel, optionId)
   const concreteMode = isConcreteModel(product.calculationModel, optionId)
   const linearMode = isLinearModel(product.calculationModel, optionId)
+  const grauteVolumeMode = product.id === 'impertudo-graute-fluido' && concreteMode
   const technical = product.technical as { consumptionBasis?: string; coatsMin?: number; coatsMax?: number; notes?: string[] } | undefined
   const perCoat = technical?.consumptionBasis === 'perCoat'
   const coatsMin = technical?.coatsMin ?? 1
@@ -101,7 +102,7 @@ export default function ProductCalculator({ preferredProductId }: { preferredPro
       metrics: [
         ...(result.rawAreaM2 ? [{ label: 'Área', value: `${format(result.rawAreaM2)} m²` }] : []),
         ...(result.areaWithWasteM2 ? [{ label: 'Área com perda', value: `${format(result.areaWithWasteM2)} m²` }] : []),
-        ...(result.concreteVolumeM3 ? [{ label: 'Volume de concreto', value: `${format(result.concreteVolumeM3)} m³` }] : []),
+        ...(result.concreteVolumeM3 ? [{ label: grauteVolumeMode ? 'Volume de graute pronto' : 'Volume de concreto', value: `${format(result.concreteVolumeM3)} m³` }] : []),
         ...(result.linearLengthM ? [{ label: 'Comprimento', value: `${format(result.linearLengthM)} m` }] : []),
         ...(result.linearWithWasteM ? [{ label: 'Comprimento com margem', value: `${format(result.linearWithWasteM)} m` }] : []),
         { label: 'Base técnica', value: result.basisLabel },
@@ -136,7 +137,7 @@ export default function ProductCalculator({ preferredProductId }: { preferredPro
           {areaMode && <AreaEditor value={area} onChange={(next) => { setArea(next); setResult(null); setSaved(false) }} />}
           {perCoat && <label className="stackField"><span>Demãos ({coatsMin} a {coatsMax})</span><input type="number" min={coatsMin} max={coatsMax} step="1" value={coats} onChange={(e) => setCoats(Number(e.target.value))} /></label>}
           {jointMode && <div className="fieldGrid three"><label><span>Comprimento (m)</span><input type="number" min="0" step="0.01" value={jointLengthM} onChange={(e) => setJointLengthM(Number(e.target.value))} /></label><label><span>Largura (mm)</span><input type="number" min="0" step="0.1" value={jointWidthMm} onChange={(e) => setJointWidthMm(Number(e.target.value))} /></label><label><span>Profundidade (mm)</span><input type="number" min="0" step="0.1" value={jointDepthMm} onChange={(e) => setJointDepthMm(Number(e.target.value))} /></label></div>}
-          {concreteMode && <label className="stackField"><span>Volume de concreto/argamassa (m³)</span><input type="number" min="0" step="0.01" value={concreteVolumeM3} onChange={(e) => { setConcreteVolumeM3(Number(e.target.value)); setResult(null); setSaved(false) }} /></label>}
+          {concreteMode && <label className="stackField"><span>{grauteVolumeMode ? 'Volume de graute pronto (m³)' : 'Volume de concreto/argamassa (m³)'}</span><input type="number" min="0" step="0.01" value={concreteVolumeM3} onChange={(e) => { setConcreteVolumeM3(Number(e.target.value)); setResult(null); setSaved(false) }} /></label>}
           {linearMode && <div className="fieldGrid two"><label><span>Comprimento linear (m)</span><input type="number" min="0" step="0.01" value={linearLengthM} onChange={(e) => { setLinearLengthM(Number(e.target.value)); setResult(null); setSaved(false) }} /></label><label><span>Margem / emendas (%)</span><input type="number" min="0" max="50" step="1" value={linearWastePercent} onChange={(e) => { setLinearWastePercent(Number(e.target.value)); setResult(null); setSaved(false) }} /></label></div>}
           {technical?.notes?.length ? <div className="contextNote">{technical.notes.map((note, index) => <span key={index}>{note}</span>)}</div> : null}
           <button className="primaryButton" onClick={handleCalculate}>Calcular produto</button>{error && <div className="errorBox">{error}</div>}
