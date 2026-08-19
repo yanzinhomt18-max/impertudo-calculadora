@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { applicationAreas } from '../../db'
 import { calculateSystem, systemDefinitions, type SystemCalculationResult } from '../../engine/system'
 import { packageLabel } from '../../engine/consolidation'
@@ -11,14 +11,25 @@ const roleLabels: Record<string, string> = {
   main_waterproofing: 'Impermeabilização principal'
 }
 
-export default function SystemCalculator() {
+export default function SystemCalculator({ preferredSystemId }: { preferredSystemId?: string }) {
   const { addCalculation } = useProject()
-  const [systemId, setSystemId] = useState(systemDefinitions[0]?.id ?? '')
+  const initialId = preferredSystemId && systemDefinitions.some((item) => item.id === preferredSystemId)
+    ? preferredSystemId
+    : systemDefinitions[0]?.id ?? ''
+  const [systemId, setSystemId] = useState(initialId)
   const [area, setArea] = useState<AreaEditorState>(defaultAreaEditorState)
   const [result, setResult] = useState<SystemCalculationResult | null>(null)
   const [resolvedArea, setResolvedArea] = useState<{ raw: number; withWaste: number } | null>(null)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    if (preferredSystemId && systemDefinitions.some((item) => item.id === preferredSystemId)) {
+      setSystemId(preferredSystemId)
+      setResult(null)
+      setSaved(false)
+    }
+  }, [preferredSystemId])
 
   const system = useMemo(() => systemDefinitions.find((item) => item.id === systemId) ?? systemDefinitions[0], [systemId])
   const areaNames = (system?.areaIds ?? []).map((id) => applicationAreas.find((areaItem) => areaItem.id === id)?.name ?? id)
