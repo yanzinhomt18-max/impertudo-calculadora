@@ -70,6 +70,22 @@ describe('motor genérico por produto', () => {
     expect(result.packageTypeConstraint).toBe('roll-10cm')
   })
 
+  it('calcula MICROFIBRA com referência mínima de 600 g/m³ de concreto', () => {
+    const result = calculateProduct({ productId: 'microfibra-de-polipropileno', optionId: 'concrete', concreteVolumeM3: 10 })
+    expect(result.minQuantity).toBe(6000)
+    expect(result.maxQuantity).toBe(6000)
+    expect(result.unit).toBe('g')
+    expect(result.recommendedMix?.items[0].count).toBe(10)
+  })
+
+  it('calcula MICROFIBRA para contrapiso na faixa de 1,0 a 1,3 kg/m³', () => {
+    const result = calculateProduct({ productId: 'microfibra-de-polipropileno', optionId: 'concrete-screed', concreteVolumeM3: 10 })
+    expect(result.minQuantity).toBe(10)
+    expect(result.maxQuantity).toBe(13)
+    expect(result.unit).toBe('kg')
+    expect(result.recommendedMix?.items[0].count).toBe(22)
+  })
+
   it('mantém PU 40 bloqueado até haver referência numérica de junta', () => {
     const product = productsById.get('impertudo-pu-40')
     expect(product?.technicalStatus).toBe('official_partial')
