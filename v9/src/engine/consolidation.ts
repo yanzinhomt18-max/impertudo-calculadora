@@ -5,8 +5,11 @@ import { calculatePackageRange, optimizePackageMix, type PackageCountResult, typ
 import { assertCompatibleUnit, fromBaseQuantity, toBaseQuantity, type QuantityUnit } from './units'
 
 export interface ConsolidatedMaterial {
+  key: string
   productId: string
   productName: string
+  variantLabel?: string
+  packageTypeConstraint?: string
   minQuantity: number
   maxQuantity: number
   unit: QuantityUnit
@@ -41,9 +44,15 @@ export interface QuoteTotals {
   selectedTotal: number
 }
 
-function targetUnitForProduct(productId: string, sourceUnit: QuantityUnit): QuantityUnit {
-  const product = productsById.get(productId)
-  const compatible = product?.packages.find((pack) => {
+function filterPackages(productId: string, packageTypeConstraint?: string): PackageOption[] {
+  const packages = productsById.get(productId)?.packages ?? []
+  return packageTypeConstraint
+    ? packages.filter((pack) => pack.packageType === packageTypeConstraint)
+    : packages
+}
+
+function targetUnitForProduct(productId: string, sourceUnit: QuantityUnit, packageTypeConstraint?: string): QuantityUnit {
+  const compatible = filterPackages(productId, packageTypeConstraint).find((pack) => {
     try {
       assertCompatibleUnit(pack.unit, sourceUnit)
       return true
@@ -56,7 +65,10 @@ function targetUnitForProduct(productId: string, sourceUnit: QuantityUnit): Quan
 
 export function consolidateCalculations(calculations: ProjectCalculation[]): ConsolidatedMaterial[] {
   const groups = new Map<string, {
+    productId: string
     productName: string
+    variantLabel?: string
+    packageTypeConstraint?: string
     sourceUnit: QuantityUnit
     minBase: number
     maxBase: number
@@ -68,17 +80,19 @@ export function consolidateCalculations(calculations: ProjectCalculation[]): Con
     for (const material of calculation.materials) {
       const minBase = toBaseQuantity(material.minQuantity, material.unit)
       const maxBase = toBaseQuantity(material.maxQuantity, material.unit)
-      const existing = groups.get(material.productId)
-      if (existing && existing.family !== minBase.family) {
-        throw new Error(`O produto ${material.productName} apareceu com unidades incompatíveis no projeto.`)
-      }
+      const variant = material.variantKey ?? material.packageTypeConstraint ?? ''
+      const groupKey = `${material.productId}|${minBase.family}|${variant}`
+      const existing = groups.get(groupKey)
       if (existing) {
         existing.minBase += minBase.value
         existing.maxBase += maxBase.value
         existing.calculationIds.add(calculation.id)
       } else {
-        groups.set(material.productId, {
+        groups.set(groupKey, {
+          productId: material.productId,
           productName: material.productName,
+          variantLabel: material.variantLabel,
+          packageTypeConstraint: material.packageTypeConstraint,
           sourceUnit: material.unit,
           minBase: minBase.value,
           maxBase: maxBase.value,
@@ -89,21 +103,21 @@ export function consolidateCalculations(calculations: ProjectCalculation[]): Con
     }
   }
 
-  return [...groups.entries()].map(([productId, group]) => {
-    const product = productsById.get(productId)
-    const unit = targetUnitForProduct(productId, group.sourceUnit)
+  return [...groups.entries()].map(([key, group]) => {
+    const unit = targetUnitForProduct(group.productId, group.sourceUnit, group.packageTypeConstraint)
     const minQuantity = fromBaseQuantity(group.minBase, unit)
     const maxQuantity = fromBaseQuantity(group.maxBase, unit)
-    const packages = product
-      ? calculatePackageRange(minQuantity, maxQuantity, unit, product.packages)
-      : []
-    const recommendedMix = product
-      ? optimizePackageMix(maxQuantity, unit, product.packages)
-      : null
+    const allowedPackages = filterPackages(group.productId, group.packageTypeConstraint)
+    const packages = calculatePackageRange(minQuantity, maxQuantity, unit, allowedPackages)
+    const recommendedMix = optimizePackageMix(maxQuantity, unit, allowedPackages)
+    const displayName = group.variantLabel ? `${group.productName} — ${group.variantLabel}` : group.productName
 
     return {
-      productId,
-      productName: group.productName,
+      key,
+      productId: group.productId,
+      productName: displayName,
+      variantLabel: group.variantLabel,
+      packageTypeConstraint: group.packageTypeConstraint,
       minQuantity,
       maxQuantity,
       unit,
@@ -116,9 +130,16 @@ export function consolidateCalculations(calculations: ProjectCalculation[]): Con
 
 export function packageLabel(option: PackageOption | null, unit?: QuantityUnit): string {
   if (!option) return `Unidade técnica (${unit ?? ''})`.trim()
+  if (option.dimensions?.lengthM && option.dimensions?.widthM) {
+    const width = option.dimensions.widthM < 1
+      ? `${Math.round(option.dimensions.widthM * 100)} cm`
+      : `${option.dimensions.widthM} m`
+    return `Rolo ${width} × ${option.dimensions.lengthM} m`
+  }
   const labels: Record<string, string> = {
     box: 'Caixa', bucket: 'Balde', drum: 'Tambor', gallon: 'Galão',
-    can: 'Lata/Pote', roll: 'Rolo', cartridge: 'Cartucho', sausage: 'Sachê'
+    can: 'Lata/Pote', roll: 'Rolo', cartridge: 'Cartucho', sausage: 'Sachê',
+    bag: 'Saco', pail: 'Balde'
   }
   const type = option.packageType ? labels[option.packageType] ?? option.packageType : 'Embalagem'
   return `${type} ${option.quantity} ${option.unit}`

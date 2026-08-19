@@ -11,6 +11,9 @@ export interface ProjectMaterial {
   maxQuantity: number
   unit: QuantityUnit
   notes?: string[]
+  variantKey?: string
+  variantLabel?: string
+  packageTypeConstraint?: string
 }
 export interface ProjectMetric { label: string; value: string }
 export interface ProjectCalculation {

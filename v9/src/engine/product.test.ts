@@ -55,6 +55,21 @@ describe('motor genérico por produto', () => {
     expect(result.recommendedMix?.purchased).toBe(50)
   })
 
+  it('calcula TELA DE POLIÉSTER por área usando somente o rolo de 1 m', () => {
+    const result = calculateProduct({ productId: 'impertudo-tela-de-poliester', optionId: 'area', areaM2: 120, wastePercent: 0 })
+    expect(result.unit).toBe('m2')
+    expect(result.recommendedMix?.items[0].count).toBe(3)
+    expect(result.recommendedMix?.items[0].package.packageType).toBe('roll-1m')
+  })
+
+  it('calcula TELA DE POLIÉSTER linear sem misturar larguras', () => {
+    const result = calculateProduct({ productId: 'impertudo-tela-de-poliester', optionId: 'linear-10cm', linearLengthM: 120, wastePercent: 0 })
+    expect(result.unit).toBe('m')
+    expect(result.recommendedMix?.items[0].count).toBe(3)
+    expect(result.recommendedMix?.items[0].package.packageType).toBe('roll-10cm')
+    expect(result.packageTypeConstraint).toBe('roll-10cm')
+  })
+
   it('mantém PU 40 bloqueado até haver referência numérica de junta', () => {
     const product = productsById.get('impertudo-pu-40')
     expect(product?.technicalStatus).toBe('official_partial')

@@ -1,5 +1,5 @@
 import { productsById, productDatabase } from '../db'
-import type { ProductRecord } from '../db/types'
+import type { PackageOption, ProductRecord } from '../db/types'
 import { applyWaste } from './geometry'
 import { calculatePackageRange, optimizePackageMix, type PackageCountResult, type PackageMixResult } from './packaging'
 import { parseConsumptionUnit } from './consumption'
@@ -27,12 +27,14 @@ interface JointReference {
 interface ModeRule {
   id: string
   label?: string
+  kind?: 'coverage_area' | 'coverage_linear' | 'concrete' | 'consumption'
   consumption?: number
   min?: number
   max?: number
   unit: string
   jointWidthMm?: number
   jointDepthMm?: number
+  packageType?: string
 }
 
 export interface ProductOption {
@@ -51,6 +53,7 @@ export interface ProductCalculationInput {
   jointWidthMm?: number
   jointDepthMm?: number
   concreteVolumeM3?: number
+  linearLengthM?: number
 }
 
 export interface ProductCalculationResult {
@@ -63,6 +66,8 @@ export interface ProductCalculationResult {
   areaWithWasteM2?: number
   wastePercent?: number
   concreteVolumeM3?: number
+  linearLengthM?: number
+  linearWithWasteM?: number
   minQuantity: number
   maxQuantity: number
   unit: QuantityUnit
@@ -70,6 +75,9 @@ export interface ProductCalculationResult {
   packages: PackageCountResult[]
   recommendedMix: PackageMixResult | null
   notes: string[]
+  variantKey?: string
+  variantLabel?: string
+  packageTypeConstraint?: string
 }
 
 function technicalOf(product: ProductRecord): Record<string, unknown> {
@@ -135,6 +143,15 @@ export function getProductOptions(product: ProductRecord): ProductOption[] {
   return []
 }
 
+function supportedMode(mode: ModeRule): boolean {
+  if (mode.kind === 'coverage_area') return mode.unit === 'm2' && Boolean(mode.packageType)
+  if (mode.kind === 'coverage_linear') return mode.unit === 'm' && Boolean(mode.packageType)
+  if (mode.kind === 'concrete' || mode.id === 'concrete') return typeof mode.consumption === 'number' || typeof mode.min === 'number'
+  if (mode.id === 'joint') return typeof mode.consumption === 'number' && typeof mode.jointWidthMm === 'number' && typeof mode.jointDepthMm === 'number'
+  if (mode.id === 'area') return typeof mode.consumption === 'number' || typeof mode.min === 'number'
+  return false
+}
+
 export function isProductAutoCalculable(product: ProductRecord): boolean {
   if (!isReleasedStatus(product)) return false
   switch (product.calculationModel) {
@@ -150,7 +167,7 @@ export function isProductAutoCalculable(product: ProductRecord): boolean {
     case 'joint_volume':
       return jointReference(product) !== null && product.packages.length > 0
     case 'multi_mode':
-      return modes(product).length > 0 && product.packages.length > 0
+      return modes(product).some(supportedMode) && product.packages.length > 0
     default:
       return false
   }
@@ -163,10 +180,15 @@ function requirePositive(value: number | undefined, label: string): number {
   return value as number
 }
 
+function normalizedWaste(value: number | undefined, defaultValue = 5): number {
+  const waste = Number.isFinite(value) ? Number(value) : defaultValue
+  if (waste < 0 || waste > 50) throw new Error('A margem de perda deve ficar entre 0% e 50%.')
+  return waste
+}
+
 function areaValues(input: ProductCalculationInput): { raw: number; waste: number; withWaste: number } {
   const raw = requirePositive(input.areaM2, 'Área')
-  const waste = Number.isFinite(input.wastePercent) ? Number(input.wastePercent) : 5
-  if (waste < 0 || waste > 50) throw new Error('A margem de perda deve ficar entre 0% e 50%.')
+  const waste = normalizedWaste(input.wastePercent)
   return { raw, waste, withWaste: applyWaste(raw, waste) }
 }
 
@@ -177,10 +199,15 @@ function selectedRange(product: ProductRecord, keys: Array<'consumptionRules' | 
   return selected
 }
 
-function packageResult(product: ProductRecord, minQuantity: number, maxQuantity: number, unit: QuantityUnit) {
+function allowedPackages(product: ProductRecord, packageType?: string): PackageOption[] {
+  return packageType ? product.packages.filter((pack) => pack.packageType === packageType) : product.packages
+}
+
+function packageResult(product: ProductRecord, minQuantity: number, maxQuantity: number, unit: QuantityUnit, packageType?: string) {
+  const packages = allowedPackages(product, packageType)
   return {
-    packages: calculatePackageRange(minQuantity, maxQuantity, unit, product.packages),
-    recommendedMix: optimizePackageMix(maxQuantity, unit, product.packages)
+    packages: calculatePackageRange(minQuantity, maxQuantity, unit, packages),
+    recommendedMix: optimizePackageMix(maxQuantity, unit, packages)
   }
 }
 
@@ -294,15 +321,13 @@ function concreteByDose(product: ProductRecord, input: ProductCalculationInput, 
   const volume = requirePositive(input.concreteVolumeM3, 'Volume de concreto')
   const min = typeof mode.min === 'number' ? mode.min : mode.consumption
   const max = typeof mode.max === 'number' ? mode.max : mode.consumption
-  if (typeof min !== 'number' || typeof max !== 'number' || min <= 0 || max <= 0 || max < min) {
-    throw new Error(`Dosagem por m³ não cadastrada corretamente para ${product.name}.`)
-  }
+  if (typeof min !== 'number' || typeof max !== 'number' || min <= 0 || max <= 0 || max < min) throw new Error(`Dosagem por m³ não cadastrada corretamente para ${product.name}.`)
   const normalized = mode.unit.toLowerCase().replace(/³/g, '3').replace(/\s/g, '')
   if (!normalized.includes('/m3')) throw new Error(`Unidade de dosagem ainda não suportada: ${mode.unit}`)
   const unit = parseConsumptionUnit(mode.unit)
   const minQuantity = roundQuantity(volume * min, 4)
   const maxQuantity = roundQuantity(volume * max, 4)
-  const packs = packageResult(product, minQuantity, maxQuantity, unit)
+  const packs = packageResult(product, minQuantity, maxQuantity, unit, mode.packageType)
   const range = min === max ? `${max} ${mode.unit}` : `${min} a ${max} ${mode.unit}`
   return {
     productId: product.id,
@@ -316,7 +341,64 @@ function concreteByDose(product: ProductRecord, input: ProductCalculationInput, 
     unit,
     basisLabel: range,
     ...packs,
-    notes: [`Dosagem aplicada a ${volume} m³ de concreto. Conferir resistência, traço e especificação do projeto.`]
+    notes: [`Dosagem aplicada a ${volume} m³ de concreto. Conferir resistência, traço e especificação do projeto.`],
+    variantKey: mode.id,
+    variantLabel: mode.label,
+    packageTypeConstraint: mode.packageType
+  }
+}
+
+function coverageByArea(product: ProductRecord, input: ProductCalculationInput, mode: ModeRule): ProductCalculationResult {
+  const area = areaValues(input)
+  if (!mode.packageType) throw new Error('Variante comercial não cadastrada para cobertura por área.')
+  const packs = packageResult(product, area.withWaste, area.withWaste, 'm2', mode.packageType)
+  if (!packs.recommendedMix) throw new Error(`Embalagem por área não encontrada para ${product.name}.`)
+  return {
+    productId: product.id,
+    productName: product.name,
+    optionId: mode.id,
+    optionLabel: mode.label ?? 'Cobertura por área',
+    calculationModel: product.calculationModel,
+    rawAreaM2: area.raw,
+    areaWithWasteM2: area.withWaste,
+    wastePercent: area.waste,
+    minQuantity: area.withWaste,
+    maxQuantity: area.withWaste,
+    unit: 'm2',
+    basisLabel: 'Cobertura nominal em m²',
+    ...packs,
+    notes: ['A margem deve contemplar recortes e sobreposições exigidas pelo sistema.'],
+    variantKey: mode.id,
+    variantLabel: mode.label,
+    packageTypeConstraint: mode.packageType
+  }
+}
+
+function coverageByLinear(product: ProductRecord, input: ProductCalculationInput, mode: ModeRule): ProductCalculationResult {
+  const length = requirePositive(input.linearLengthM, 'Comprimento linear')
+  const waste = normalizedWaste(input.wastePercent)
+  const withWaste = applyWaste(length, waste)
+  if (!mode.packageType) throw new Error('Variante comercial não cadastrada para cobertura linear.')
+  const packs = packageResult(product, withWaste, withWaste, 'm', mode.packageType)
+  if (!packs.recommendedMix) throw new Error(`Embalagem linear não encontrada para ${product.name}.`)
+  return {
+    productId: product.id,
+    productName: product.name,
+    optionId: mode.id,
+    optionLabel: mode.label ?? 'Cobertura linear',
+    calculationModel: product.calculationModel,
+    linearLengthM: length,
+    linearWithWasteM: withWaste,
+    wastePercent: waste,
+    minQuantity: withWaste,
+    maxQuantity: withWaste,
+    unit: 'm',
+    basisLabel: 'Comprimento linear do reforço',
+    ...packs,
+    notes: ['A margem deve contemplar emendas, recortes e perdas de instalação.'],
+    variantKey: mode.id,
+    variantLabel: mode.label,
+    packageTypeConstraint: mode.packageType
   }
 }
 
@@ -324,23 +406,27 @@ function multiMode(product: ProductRecord, input: ProductCalculationInput): Prod
   const all = modes(product)
   const mode = input.optionId ? all.find((item) => item.id === input.optionId) : all[0]
   if (!mode) throw new Error(`Modo de cálculo não encontrado para ${product.name}.`)
+  if (mode.kind === 'coverage_area') return coverageByArea(product, input, mode)
+  if (mode.kind === 'coverage_linear') return coverageByLinear(product, input, mode)
+  if (mode.kind === 'concrete' || mode.id === 'concrete') return concreteByDose(product, input, mode)
   if (mode.id === 'area') {
     const min = typeof mode.min === 'number' ? mode.min : mode.consumption
     const max = typeof mode.max === 'number' ? mode.max : mode.consumption
     if (typeof min !== 'number' || typeof max !== 'number') throw new Error('Consumo por área não cadastrado.')
-    return consumptionByArea(product, input, { id: mode.id, label: mode.label ?? 'Por área', min, max, unit: mode.unit })
+    const result = consumptionByArea(product, input, { id: mode.id, label: mode.label ?? 'Por área', min, max, unit: mode.unit })
+    return { ...result, variantKey: mode.id, variantLabel: mode.label, packageTypeConstraint: mode.packageType }
   }
   if (mode.id === 'joint') {
     const consumption = typeof mode.consumption === 'number' ? mode.consumption : mode.max
     if (typeof consumption !== 'number' || typeof mode.jointWidthMm !== 'number' || typeof mode.jointDepthMm !== 'number') throw new Error('Referência da junta não cadastrada.')
-    return jointByReference(product, input, {
+    const result = jointByReference(product, input, {
       widthMm: mode.jointWidthMm,
       depthMm: mode.jointDepthMm,
       consumption,
       unit: mode.unit
     })
+    return { ...result, optionId: mode.id, optionLabel: mode.label ?? 'Por junta', variantKey: mode.id, variantLabel: mode.label, packageTypeConstraint: mode.packageType }
   }
-  if (mode.id === 'concrete') return concreteByDose(product, input, mode)
   throw new Error(`Modo ${mode.id} ainda não suportado.`)
 }
 
