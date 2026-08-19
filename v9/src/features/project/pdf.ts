@@ -78,7 +78,6 @@ export async function generateProjectPdf(project: ProjectState, materials: Conso
   }
   text('PROPOSTA / RESUMO DE MATERIAIS', headerX, y + 7, 15, true, green)
   text('Calculadora Técnica IMPERTUDO • V9.0', headerX, y + 14, 8.5, true, dark)
-  text(`Emitido em ${new Date().toLocaleString('pt-BR')}`, pageW - margin, y + 20, 7, false, muted)
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(7)
   doc.setTextColor(...muted)
