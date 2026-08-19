@@ -14,9 +14,12 @@ function isJointModel(model: string, optionId?: string): boolean {
   return model === 'joint_volume' || (model === 'multi_mode' && optionId === 'joint')
 }
 
-export default function ProductCalculator() {
+export default function ProductCalculator({ preferredProductId }: { preferredProductId?: string }) {
   const { addCalculation } = useProject()
-  const [productId, setProductId] = useState(autoCalculableProducts[0]?.id ?? '')
+  const initialId = preferredProductId && autoCalculableProducts.some((item) => item.id === preferredProductId)
+    ? preferredProductId
+    : autoCalculableProducts[0]?.id ?? ''
+  const [productId, setProductId] = useState(initialId)
   const product = useMemo(() => autoCalculableProducts.find((item) => item.id === productId) ?? autoCalculableProducts[0], [productId])
   const options = useMemo(() => product ? getProductOptions(product) : [], [product])
   const [optionId, setOptionId] = useState('')
@@ -28,6 +31,12 @@ export default function ProductCalculator() {
   const [result, setResult] = useState<ProductCalculationResult | null>(null)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    if (preferredProductId && autoCalculableProducts.some((item) => item.id === preferredProductId)) {
+      setProductId(preferredProductId)
+    }
+  }, [preferredProductId])
 
   useEffect(() => {
     setOptionId(options[0]?.id ?? '')
