@@ -12,12 +12,7 @@ export interface ProjectMaterial {
   unit: QuantityUnit
   notes?: string[]
 }
-
-export interface ProjectMetric {
-  label: string
-  value: string
-}
-
+export interface ProjectMetric { label: string; value: string }
 export interface ProjectCalculation {
   id: string
   kind: 'reservoir' | 'product' | 'system'
@@ -29,12 +24,7 @@ export interface ProjectCalculation {
   materials: ProjectMaterial[]
   notes: string[]
 }
-
-export interface PricingRecord {
-  unitPrice: number
-  discountType: DiscountType
-  discountValue: number
-}
+export interface PricingRecord { unitPrice: number; discountType: DiscountType; discountValue: number }
 
 export interface ProjectState {
   version: 1
@@ -51,31 +41,18 @@ export interface ProjectState {
   pricing: Record<string, PricingRecord>
   cashDiscountPct: number
   paymentMethod: PaymentMethod
+  checklist: Record<string, boolean>
 }
 
 export function createId(prefix = 'item'): string {
-  const value = typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  const value = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`
   return `${prefix}-${value}`
 }
 
 export function createEmptyProject(): ProjectState {
   const now = new Date().toISOString()
   return {
-    version: 1,
-    id: createId('project'),
-    client: '',
-    projectName: '',
-    location: '',
-    consultant: '',
-    validityDays: 7,
-    notes: '',
-    createdAt: now,
-    updatedAt: now,
-    calculations: [],
-    pricing: {},
-    cashDiscountPct: 0,
-    paymentMethod: 'pix'
+    version: 1, id: createId('project'), client: '', projectName: '', location: '', consultant: '', validityDays: 7, notes: '',
+    createdAt: now, updatedAt: now, calculations: [], pricing: {}, cashDiscountPct: 0, paymentMethod: 'pix', checklist: {}
   }
 }
