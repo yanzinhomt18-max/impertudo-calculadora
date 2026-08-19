@@ -4,10 +4,14 @@ const read = (path) => JSON.parse(fs.readFileSync(new URL(path, import.meta.url)
 const meta = read('../src/data/catalog-meta.json')
 const chunks = [1,2,3,4,5].map((n) => read(`../src/data/products-${n}.json`).products)
 const baseProducts = chunks.flat()
-const overrideFiles = [
-  read('../src/data/verified-overrides.json'),
-  read('../src/data/verified-overrides-phase3.json')
-]
+const dataDir = new URL('../src/data/', import.meta.url)
+const overrideNames = fs.readdirSync(dataDir)
+  .filter((name) => /^verified-overrides(?:-phase\d+)?\.json$/.test(name))
+  .sort((a, b) => {
+    const phase = (name) => name === 'verified-overrides.json' ? 2 : Number(name.match(/phase(\d+)/)?.[1] ?? 0)
+    return phase(a) - phase(b)
+  })
+const overrideFiles = overrideNames.map((name) => read(`../src/data/${name}`))
 const categories = read('../src/data/categories.json')
 const areas = read('../src/data/application-areas.json')
 const systems = read('../src/data/systems.json')
@@ -69,4 +73,4 @@ if (errors.length) {
   process.exit(1)
 }
 
-console.log(`Banco V9 válido: ${products.products.length} produtos, ${categoryIds.size} categorias, ${areaIds.size} ambientes, ${systems.systems.length} sistemas, ${overrideCount} revisões técnicas em ${overrideFiles.length} camada(s).`)
+console.log(`Banco V9 válido: ${products.products.length} produtos, ${categoryIds.size} categorias, ${areaIds.size} ambientes, ${systems.systems.length} sistemas, ${overrideCount} revisões técnicas em ${overrideFiles.length} camada(s): ${overrideNames.join(', ')}.`)
