@@ -1,9 +1,21 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { clearStoredProject, loadProject, saveProject } from './storage'
+import {
+  clearStoredProject,
+  loadProject,
+  loadProjectLibrary,
+  parseProjectBackup,
+  removeProject,
+  saveProject,
+  saveProjectLibrary,
+  serializeProjectBackup,
+  upsertProject
+} from './storage'
 import { createEmptyProject, createId, type PaymentMethod, type PricingRecord, type ProjectCalculation, type ProjectState } from './types'
 
 interface ProjectContextValue {
   project: ProjectState
+  savedProjects: ProjectState[]
+  isCurrentSaved: boolean
   updateMeta: (patch: Partial<Pick<ProjectState, 'client' | 'projectName' | 'location' | 'consultant' | 'validityDays' | 'notes'>>) => void
   addCalculation: (calculation: Omit<ProjectCalculation, 'id' | 'createdAt'>) => string
   removeCalculation: (id: string) => void
@@ -11,18 +23,41 @@ interface ProjectContextValue {
   setCashDiscountPct: (value: number) => void
   setPaymentMethod: (value: PaymentMethod) => void
   setChecklistItem: (key: string, checked: boolean) => void
+  saveCurrentToLibrary: () => void
+  openSavedProject: (id: string) => void
+  duplicateCurrentProject: () => void
+  deleteSavedProject: (id: string) => void
+  exportBackup: () => string
+  importBackup: (text: string) => number
   resetProject: () => void
 }
 
 const ProjectContext = createContext<ProjectContextValue | null>(null)
 const touch = (project: ProjectState): ProjectState => ({ ...project, updatedAt: new Date().toISOString() })
 
+function persistLibrary(projects: ProjectState[]): ProjectState[] {
+  saveProjectLibrary(projects)
+  return projects
+}
+
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const [project, setProject] = useState<ProjectState>(() => loadProject())
-  useEffect(() => { saveProject(project) }, [project])
+  const [savedProjects, setSavedProjects] = useState<ProjectState[]>(() => loadProjectLibrary())
+
+  useEffect(() => {
+    saveProject(project)
+    setSavedProjects((current) => {
+      if (!current.some((item) => item.id === project.id)) return current
+      return persistLibrary(upsertProject(current, project))
+    })
+  }, [project])
+
+  const isCurrentSaved = savedProjects.some((item) => item.id === project.id)
 
   const value = useMemo<ProjectContextValue>(() => ({
     project,
+    savedProjects,
+    isCurrentSaved,
     updateMeta(patch) { setProject((current) => touch({ ...current, ...patch })) },
     addCalculation(calculation) {
       const id = createId('calc')
@@ -43,8 +78,49 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     },
     setPaymentMethod(value) { setProject((current) => touch({ ...current, paymentMethod: value })) },
     setChecklistItem(key, checked) { setProject((current) => touch({ ...current, checklist: { ...current.checklist, [key]: checked } })) },
-    resetProject() { clearStoredProject(); setProject(createEmptyProject()) }
-  }), [project])
+    saveCurrentToLibrary() {
+      setSavedProjects((current) => persistLibrary(upsertProject(current, project)))
+    },
+    openSavedProject(id) {
+      const found = savedProjects.find((item) => item.id === id)
+      if (found) setProject(found)
+    },
+    duplicateCurrentProject() {
+      const now = new Date().toISOString()
+      const duplicate: ProjectState = {
+        ...project,
+        id: createId('project'),
+        projectName: project.projectName ? `${project.projectName} — cópia` : 'Nova obra — cópia',
+        createdAt: now,
+        updatedAt: now,
+        calculations: project.calculations.map((calculation) => ({ ...calculation, id: createId('calc'), createdAt: now })),
+        pricing: { ...project.pricing },
+        checklist: { ...project.checklist }
+      }
+      setSavedProjects((current) => persistLibrary(upsertProject(current, duplicate)))
+      setProject(duplicate)
+    },
+    deleteSavedProject(id) {
+      setSavedProjects((current) => persistLibrary(removeProject(current, id)))
+    },
+    exportBackup() {
+      return serializeProjectBackup(project, savedProjects)
+    },
+    importBackup(text) {
+      const backup = parseProjectBackup(text)
+      setSavedProjects((current) => {
+        let next = current
+        for (const item of backup.projects) next = upsertProject(next, item)
+        return persistLibrary(next)
+      })
+      setProject(backup.activeProject)
+      return backup.projects.length
+    },
+    resetProject() {
+      clearStoredProject()
+      setProject(createEmptyProject())
+    }
+  }), [project, savedProjects, isCurrentSaved])
 
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>
 }

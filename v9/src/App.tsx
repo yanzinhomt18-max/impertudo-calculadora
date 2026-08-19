@@ -4,7 +4,7 @@ import ReservoirCalculator from './features/reservoir/ReservoirCalculator'
 import ProductCalculator from './features/product/ProductCalculator'
 import SystemCalculator from './features/system/SystemCalculator'
 import TechnicalAssistant from './features/assistant/TechnicalAssistant'
-import ProjectDashboard from './features/project/ProjectDashboard'
+import ProjectWorkspace from './features/project/ProjectWorkspace'
 import InstallAppButton from './features/pwa/InstallAppButton'
 import { isProductAutoCalculable } from './engine/product'
 import { useProject } from './project/ProjectContext'
@@ -22,7 +22,7 @@ function latestReview(product: ProductItem): string {
 }
 
 export default function App() {
-  const { project } = useProject()
+  const { project, savedProjects } = useProject()
   const [view, setView] = useState<View>('assistant')
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
@@ -60,14 +60,14 @@ export default function App() {
       <button className={view === 'reservoir' ? 'active' : ''} onClick={() => setView('reservoir')}><b>Reservatórios</b><small>módulo guiado</small></button>
       <button className={view === 'product' ? 'active' : ''} onClick={() => setView('product')}><b>Por produto</b><small>motor genérico</small></button>
       <button className={view === 'system' ? 'active' : ''} onClick={() => setView('system')}><b>Por sistema</b><small>composição completa</small></button>
-      <button className={view === 'project' ? 'active' : ''} onClick={() => setView('project')}><b>Projeto / Obra {project.calculations.length > 0 && <em>{project.calculations.length}</em>}</b><small>materiais e proposta</small></button>
+      <button className={view === 'project' ? 'active' : ''} onClick={() => setView('project')}><b>Projeto / Obra {project.calculations.length > 0 && <em>{project.calculations.length}</em>}</b><small>{savedProjects.length ? `${savedProjects.length} obra(s) salva(s)` : 'materiais e proposta'}</small></button>
       <button className={view === 'catalog' ? 'active' : ''} onClick={() => setView('catalog')}><b>Banco técnico</b><small>auditoria</small></button>
     </nav>
     {view === 'assistant' && <TechnicalAssistant onOpenProduct={openProduct} onOpenReservoir={() => setView('reservoir')} onOpenSystem={openSystem} />}
     {view === 'reservoir' && <ReservoirCalculator />}
     {view === 'product' && <ProductCalculator preferredProductId={preferredProductId} />}
     {view === 'system' && <SystemCalculator preferredSystemId={preferredSystemId} />}
-    {view === 'project' && <ProjectDashboard />}
+    {view === 'project' && <ProjectWorkspace />}
     {view === 'catalog' && <section className="panel"><div className="panelHead"><div><div className="eyebrow dark">BANCO V9</div><h2>Catálogo mestre</h2><p>Produtos sem fonte técnica suficiente permanecem bloqueados para cálculo automático.</p></div><div className="filters"><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar produto..." aria-label="Buscar produto" /><select value={status} onChange={(e) => setStatus(e.target.value)}><option value="all">Todos os status</option><option value="verified_mixed">Verificados</option><option value="official_partial">Oficiais parciais</option><option value="previous_technical_pending_revalidation">Revalidar ficha</option><option value="pending">Pendentes</option></select></div></div><div className="productGrid">{products.map((product) => { const auto = isProductAutoCalculable(product); const reviewed = latestReview(product); return <article className="productCard" key={product.id}><div className={`status status-${product.technicalStatus}`}>{statusLabel[product.technicalStatus]}</div><h3>{product.name}</h3><p>{product.packageLabel}</p><div className="productMeta"><span>{product.calculationModel}</span><span>{product.categoryId}</span></div>{reviewed && <small className="reviewMeta">Revisão técnica: {reviewed}</small>}<div className="catalogActions"><a href={product.officialUrl} target="_blank" rel="noreferrer">Página oficial ↗</a>{auto && <button onClick={() => openProduct(product.id)}>Calcular</button>}</div></article> })}</div></section>}
     <footer className="appFooter"><strong>IMPERTUDO • Calculadora Técnica V9.0</strong><span>Pré-dimensionamento. Verifique ficha técnica vigente, projeto, condições da obra e medidas in loco.</span></footer>
   </main>
