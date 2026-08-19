@@ -1,0 +1,11 @@
+{
+  "name": "impertudo-calculadora",
+  "version": "8.3.0",
+  "private": true,
+  "scripts": {
+    "build": "node build-single.js"
+  },
+  "dependencies": {
+    "jspdf": "4.2.1"
+  }
+}
