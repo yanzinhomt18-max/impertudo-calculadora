@@ -1,13 +1,14 @@
 {
   "name": "impertudo-calculadora-v9",
   "private": true,
-  "version": "9.0.0-alpha.1",
+  "version": "9.0.0-alpha.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "npm run validate:db && tsc -b && vite build",
     "preview": "vite preview",
-    "validate:db": "node scripts/validate-db.mjs"
+    "validate:db": "node scripts/validate-db.mjs",
+    "test": "vitest run"
   },
   "dependencies": {
     "react": "19.2.7",
@@ -19,6 +20,7 @@
     "@types/react-dom": "19.2.4",
     "@vitejs/plugin-react": "6.0.5",
     "typescript": "^7.0.0",
-    "vite": "^8.1.0"
+    "vite": "^8.1.0",
+    "vitest": "^4.1.0"
   }
 }
