@@ -30,3 +30,11 @@ jobs:
         run: npm test
       - name: Build V9
         run: npm run build
+      - name: Validate production bundle
+        run: |
+          test -f dist/index.html
+          test -f dist/sw.js
+          test -f dist/manifest.webmanifest
+          test -f dist/icon.svg
+          test -f dist/logo-impertudo.svg
+          grep -q "Calculadora Técnica IMPERTUDO" dist/index.html
