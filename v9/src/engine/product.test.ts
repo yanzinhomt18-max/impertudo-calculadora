@@ -55,6 +55,30 @@ describe('motor genérico por produto', () => {
     expect(result.recommendedMix?.items[0].count).toBe(3)
   })
 
+  it('calcula ADMIX CRISTAL C por volume de concreto', () => {
+    const result = calculateProduct({
+      productId: 'impertudo-admix-cristal-c',
+      optionId: 'concrete',
+      concreteVolumeM3: 10
+    })
+    expect(result.minQuantity).toBe(8000)
+    expect(result.maxQuantity).toBe(8000)
+    expect(result.unit).toBe('g')
+    expect(result.recommendedMix?.items[0].count).toBe(10)
+  })
+
+  it('calcula ADMIX CRISTAL C em pintura a 80 g/m²', () => {
+    const result = calculateProduct({
+      productId: 'impertudo-admix-cristal-c',
+      optionId: 'area',
+      areaM2: 20,
+      wastePercent: 0
+    })
+    expect(result.minQuantity).toBe(1600)
+    expect(result.maxQuantity).toBe(1600)
+    expect(result.recommendedMix?.items[0].count).toBe(2)
+  })
+
   it('mantém PU 40 bloqueado até haver referência numérica de junta', () => {
     const product = productsById.get('impertudo-pu-40')
     expect(product?.technicalStatus).toBe('official_partial')
