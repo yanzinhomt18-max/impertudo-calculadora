@@ -1,14 +1,17 @@
-/* V8.2 — catálogo local persistente */
+/* V8.3 — catálogo local persistente */
 (function(){
- const KEY='impertudo_catalog_local_v82';
- const VERSION='8.2.0-2026-08-18';
+ const KEY='impertudo_catalog_local_v82'; // mantém a mesma chave para preservar dados já salvos
+ const VERSION='8.3.0-2026-08-18';
  const embedded=Array.isArray(window.IMPERTUDO_PRODUCTS)?window.IMPERTUDO_PRODUCTS:[];
  let selected=embedded;
  try{
    const cached=JSON.parse(localStorage.getItem(KEY)||'null');
-   if(cached && Array.isArray(cached.items) && cached.items.length && (cached.custom===true || cached.version===VERSION)){
+   if(cached && Array.isArray(cached.items) && cached.items.length && cached.custom===true){
+     selected=cached.items;
+   }else if(cached && Array.isArray(cached.items) && cached.items.length && cached.version===VERSION){
      selected=cached.items;
    }else{
+     selected=embedded;
      localStorage.setItem(KEY,JSON.stringify({version:VERSION,items:embedded,custom:false,updatedAt:new Date().toISOString()}));
    }
  }catch(e){console.warn('Catálogo local indisponível',e);}
