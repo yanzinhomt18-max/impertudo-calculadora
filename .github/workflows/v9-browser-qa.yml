@@ -1,0 +1,43 @@
+name: V9 Browser QA
+
+on:
+  push:
+    branches: [v9-main]
+    paths:
+      - 'v9/**'
+      - '.github/workflows/v9-browser-qa.yml'
+  pull_request:
+    paths:
+      - 'v9/**'
+      - '.github/workflows/v9-browser-qa.yml'
+
+jobs:
+  browser-qa:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install dependencies
+        run: npm install
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Build V9
+        run: npm run build
+      - name: Run browser QA
+        run: npm run test:e2e
+      - name: Upload screenshots and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v9-browser-qa
+          path: |
+            v9/qa-screenshots
+            v9/playwright-report
+            v9/test-results
+          if-no-files-found: ignore
+          retention-days: 14
