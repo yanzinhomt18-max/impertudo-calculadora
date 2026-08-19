@@ -26,5 +26,7 @@ jobs:
         run: npm install
       - name: Validate database
         run: npm run validate:db
+      - name: Test calculation engine
+        run: npm test
       - name: Build V9
         run: npm run build
