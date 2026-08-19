@@ -1,0 +1,57 @@
+/* IMPERTUDO V8.3 — legibilidade, fluxo e responsividade */
+.card{min-height:unset!important}
+.hero{padding-top:24px!important;padding-bottom:27px!important}
+.hero-brandline{margin-bottom:13px!important}
+.hero-logo{width:clamp(150px,15vw,178px)!important}
+.hero h1{font-size:clamp(34px,4.8vw,52px)!important;line-height:1.02!important;margin-bottom:8px!important}
+.hero p{font-size:15.5px!important;line-height:1.5!important;max-width:850px!important}
+.hero-tags{margin-top:16px!important}
+.tag{font-size:11px!important}
+label{font-size:11px!important;line-height:1.25!important}
+input,select{min-height:44px!important;font-size:14px!important}
+.mini,.calc-help,.param-note,.repo-note,.quote-packs,.note,.info{font-size:11px!important}
+.quick-start span,.product-card p,.appCard span{font-size:11px!important}
+.prodBtn b{font-size:13px!important}.prodBtn span{font-size:11px!important}
+.cg-source{font-size:10px!important}.cg-use{font-size:12px!important}.cg-cons{font-size:13px!important}.cg-detail{font-size:11px!important}
+.financial-card span{font-size:10px!important}.financial-card small{font-size:9.5px!important}
+.quote-item small{font-size:10px!important}.quote-commercial .field label{font-size:10px!important}
+.quote-remove{font-size:10px!important}
+
+.parametric-area-head b{font-size:14px!important}.parametric-area-head span:not(.param-badge){font-size:11px!important}
+.basis-lock{margin-top:12px;padding:11px 12px;border:1px solid #bcdccc;border-radius:12px;background:#eef8f3;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.basis-lock b{font-size:12px;color:#087548}.basis-lock span{font-size:10.5px;color:#60766c;text-align:right;line-height:1.4}
+.basis-lock.system{background:#f6faf8}
+.locked-basis{display:grid;grid-template-columns:minmax(180px,.65fr) 1fr;align-items:end;gap:13px}
+.single-choice{grid-template-columns:1fr!important}
+
+.validation-error{border:1px solid #e6aaa3;background:#fff3f1;color:#7f2f27;padding:14px 15px;border-radius:14px;display:grid;gap:4px}
+.validation-error b{font-size:13px}.validation-error span{font-size:11px;line-height:1.45}
+.system-complement{margin-top:15px;border:1px solid #b9d9ca;border-radius:16px;padding:15px;background:#f7fbf9}
+.system-complement-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px}
+.system-complement-head b{font-size:13px;color:#17352a}.system-complement-head span{font-size:10px;font-weight:900;color:#087548;background:#eaf6f0;padding:6px 8px;border-radius:999px}
+
+.summary-actions .secondary{background:#087548!important;color:#fff!important;box-shadow:0 8px 18px rgba(8,117,72,.16)}
+.commercial-head p{font-size:11px!important}
+.pay-option b{font-size:13px!important}.pay-option span{font-size:10px!important}
+.selected-payment{font-size:11px!important}
+.item-subtotal small{font-size:9px!important}
+
+.install-help{position:fixed;inset:0;background:rgba(7,35,25,.56);z-index:999;display:grid;place-items:center;padding:18px}
+.install-help-card{width:min(430px,100%);background:#fff;border-radius:20px;padding:21px;box-shadow:0 25px 70px rgba(0,0,0,.25)}
+.install-help-card h3{margin:0 0 8px;color:#17352a;font-size:19px}.install-help-card p{margin:0;color:#5f746a;font-size:13px;line-height:1.5}
+.install-help-steps{margin:14px 0;display:grid;gap:8px}.install-help-step{display:flex;gap:9px;align-items:flex-start;padding:10px;border:1px solid #dbe7e1;border-radius:12px;background:#f8fbf9;font-size:12px;color:#385249}.install-help-step b{color:#087548}
+.install-help-card button{width:100%}
+
+@media(max-width:900px){
+ .hero{padding-top:22px!important;padding-bottom:25px!important}
+ .locked-basis{grid-template-columns:1fr}
+ .basis-lock{align-items:flex-start}.basis-lock span{text-align:left}
+}
+@media(max-width:620px){
+ .hero-logo{width:128px!important}.hero h1{font-size:34px!important}.hero p{font-size:14px!important}
+ .hero-brandline{align-items:center!important}.install-btn{font-size:11px!important}
+ input,select{font-size:16px!important} /* evita zoom automático no iOS */
+ .quick-start{gap:8px!important}.quick-start button{min-height:92px!important}
+ .financial-grid-v82{grid-template-columns:1fr!important}
+ .basis-lock{display:block}.basis-lock span{display:block;margin-top:4px}
+}
