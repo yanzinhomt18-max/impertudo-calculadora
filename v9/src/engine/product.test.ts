@@ -86,10 +86,10 @@ describe('motor genérico por produto', () => {
     expect(result.recommendedMix?.items[0].count).toBe(22)
   })
 
-  it('mantém PU 40 bloqueado até haver referência numérica de junta', () => {
+  it('libera PU 40 após referência interna de junta 10 × 10 mm', () => {
     const product = productsById.get('impertudo-pu-40')
-    expect(product?.technicalStatus).toBe('official_partial')
-    expect(isProductAutoCalculable(product!)).toBe(false)
+    expect(product?.technicalStatus).toBe('verified_mixed')
+    expect(isProductAutoCalculable(product!)).toBe(true)
   })
 
   it('bloqueia produto apenas herdado e ainda não revalidado', () => {
