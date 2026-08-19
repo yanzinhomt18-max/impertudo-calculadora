@@ -1,6 +1,6 @@
 {
-  "buildCommand": "node build-single.js",
-  "outputDirectory": "dist",
+  "buildCommand": "npm --prefix v9 install && npm --prefix v9 run build",
+  "outputDirectory": "v9/dist",
   "cleanUrls": true,
   "trailingSlash": false
 }
