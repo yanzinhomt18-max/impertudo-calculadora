@@ -7,6 +7,7 @@ import chunk5 from '../data/products-5.json'
 import phase2Overrides from '../data/verified-overrides.json'
 import phase3Overrides from '../data/verified-overrides-phase3.json'
 import phase4Overrides from '../data/verified-overrides-phase4.json'
+import phase5Overrides from '../data/verified-overrides-phase5.json'
 import rawCategories from '../data/categories.json'
 import rawAreas from '../data/application-areas.json'
 import rawSystems from '../data/systems.json'
@@ -22,7 +23,7 @@ const baseProducts = [
 ]
 
 const overrideById = new Map<string, Record<string, unknown> & { id: string }>()
-for (const file of [phase2Overrides, phase3Overrides, phase4Overrides]) {
+for (const file of [phase2Overrides, phase3Overrides, phase4Overrides, phase5Overrides]) {
   for (const override of file.overrides as Array<Record<string, unknown> & { id: string }>) {
     overrideById.set(override.id, override)
   }
