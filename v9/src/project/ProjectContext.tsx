@@ -10,63 +10,40 @@ interface ProjectContextValue {
   updatePricing: (key: string, patch: Partial<PricingRecord>) => void
   setCashDiscountPct: (value: number) => void
   setPaymentMethod: (value: PaymentMethod) => void
+  setChecklistItem: (key: string, checked: boolean) => void
   resetProject: () => void
 }
 
 const ProjectContext = createContext<ProjectContextValue | null>(null)
-
-function touch(project: ProjectState): ProjectState {
-  return { ...project, updatedAt: new Date().toISOString() }
-}
+const touch = (project: ProjectState): ProjectState => ({ ...project, updatedAt: new Date().toISOString() })
 
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const [project, setProject] = useState<ProjectState>(() => loadProject())
-
-  useEffect(() => {
-    saveProject(project)
-  }, [project])
+  useEffect(() => { saveProject(project) }, [project])
 
   const value = useMemo<ProjectContextValue>(() => ({
     project,
-    updateMeta(patch) {
-      setProject((current) => touch({ ...current, ...patch }))
-    },
+    updateMeta(patch) { setProject((current) => touch({ ...current, ...patch })) },
     addCalculation(calculation) {
       const id = createId('calc')
-      const entry: ProjectCalculation = {
-        ...calculation,
-        id,
-        createdAt: new Date().toISOString()
-      }
+      const entry: ProjectCalculation = { ...calculation, id, createdAt: new Date().toISOString() }
       setProject((current) => touch({ ...current, calculations: [...current.calculations, entry] }))
       return id
     },
-    removeCalculation(id) {
-      setProject((current) => touch({ ...current, calculations: current.calculations.filter((item) => item.id !== id) }))
-    },
+    removeCalculation(id) { setProject((current) => touch({ ...current, calculations: current.calculations.filter((item) => item.id !== id) })) },
     updatePricing(key, patch) {
       setProject((current) => {
         const previous = current.pricing[key] ?? { unitPrice: 0, discountType: 'pct' as const, discountValue: 0 }
-        return touch({
-          ...current,
-          pricing: {
-            ...current.pricing,
-            [key]: { ...previous, ...patch }
-          }
-        })
+        return touch({ ...current, pricing: { ...current.pricing, [key]: { ...previous, ...patch } } })
       })
     },
     setCashDiscountPct(value) {
       const safe = Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0))
       setProject((current) => touch({ ...current, cashDiscountPct: safe }))
     },
-    setPaymentMethod(value) {
-      setProject((current) => touch({ ...current, paymentMethod: value }))
-    },
-    resetProject() {
-      clearStoredProject()
-      setProject(createEmptyProject())
-    }
+    setPaymentMethod(value) { setProject((current) => touch({ ...current, paymentMethod: value })) },
+    setChecklistItem(key, checked) { setProject((current) => touch({ ...current, checklist: { ...current.checklist, [key]: checked } })) },
+    resetProject() { clearStoredProject(); setProject(createEmptyProject()) }
   }), [project])
 
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>
