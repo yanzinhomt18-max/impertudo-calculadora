@@ -1,6 +1,11 @@
 import { useMemo, useState } from 'react'
 import { applicationAreas, categories, productDatabase, systems } from './db'
 import ReservoirCalculator from './features/reservoir/ReservoirCalculator'
+import ProductCalculator from './features/product/ProductCalculator'
+import TechnicalAssistant from './features/assistant/TechnicalAssistant'
+import ProjectDashboard from './features/project/ProjectDashboard'
+import InstallAppButton from './features/pwa/InstallAppButton'
+import { useProject } from './project/ProjectContext'
 import './styles.css'
 
 const statusLabel: Record<string, string> = {
@@ -10,10 +15,11 @@ const statusLabel: Record<string, string> = {
   previous_technical_pending_revalidation: 'Revalidar ficha'
 }
 
-type View = 'reservoir' | 'catalog'
+type View = 'assistant' | 'reservoir' | 'product' | 'project' | 'catalog'
 
 export default function App() {
-  const [view, setView] = useState<View>('reservoir')
+  const { project } = useProject()
+  const [view, setView] = useState<View>('assistant')
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
 
@@ -36,20 +42,23 @@ export default function App() {
 
   return (
     <main>
-      <section className="hero">
-        <div className="eyebrow">IMPERTUDO • NOVA ARQUITETURA</div>
-        <h1>Calculadora Técnica V9.0</h1>
-        <p>
-          Banco rastreável, motor matemático independente e cálculo guiado por sistema.
-          O primeiro módulo funcional é o pré-dimensionamento de reservatórios.
-        </p>
-        <div className="heroBadges">
-          <span>{productDatabase.meta.productCount} produtos</span>
-          <span>{categories.length} categorias</span>
-          <span>{applicationAreas.length} ambientes</span>
-          <span>{systems.length} sistemas iniciais</span>
+      <header className="hero">
+        <div className="heroInner">
+          <div className="brandBox"><img className="heroLogo" src="/logo-impertudo.svg" alt="IMPERTUDO Químicos para Construção" /></div>
+          <div className="heroCopy">
+            <div className="eyebrow">IMPERTUDO • PLATAFORMA TÉCNICA</div>
+            <h1>Calculadora Técnica V9.0</h1>
+            <p>Do diagnóstico ao quantitativo comercial: banco rastreável, cálculo por produto e sistema, Projeto/Obra, proposta e funcionamento offline.</p>
+            <div className="heroBadges">
+              <span>{productDatabase.meta.productCount} produtos</span>
+              <span>{categories.length} categorias</span>
+              <span>{applicationAreas.length} ambientes</span>
+              <span>{systems.length} sistemas iniciais</span>
+            </div>
+          </div>
+          <InstallAppButton />
         </div>
-      </section>
+      </header>
 
       <section className="metrics">
         <article><strong>{counts.get('verified_mixed') ?? 0}</strong><span>verificados/mistos</span></article>
@@ -59,32 +68,24 @@ export default function App() {
       </section>
 
       <nav className="appNav" aria-label="Módulos da calculadora">
-        <button className={view === 'reservoir' ? 'active' : ''} onClick={() => setView('reservoir')}>
-          Reservatórios
-          <small>primeiro módulo</small>
-        </button>
-        <button className={view === 'catalog' ? 'active' : ''} onClick={() => setView('catalog')}>
-          Banco técnico
-          <small>auditoria dos produtos</small>
-        </button>
+        <button className={view === 'assistant' ? 'active' : ''} onClick={() => setView('assistant')}><b>Me ajude a escolher</b><small>ambiente e condição</small></button>
+        <button className={view === 'reservoir' ? 'active' : ''} onClick={() => setView('reservoir')}><b>Reservatórios</b><small>sistema guiado</small></button>
+        <button className={view === 'product' ? 'active' : ''} onClick={() => setView('product')}><b>Por produto</b><small>motor genérico</small></button>
+        <button className={view === 'project' ? 'active' : ''} onClick={() => setView('project')}><b>Projeto / Obra {project.calculations.length > 0 && <em>{project.calculations.length}</em>}</b><small>materiais e proposta</small></button>
+        <button className={view === 'catalog' ? 'active' : ''} onClick={() => setView('catalog')}><b>Banco técnico</b><small>auditoria</small></button>
       </nav>
 
-      {view === 'reservoir' ? (
-        <ReservoirCalculator />
-      ) : (
+      {view === 'assistant' && <TechnicalAssistant onOpenProduct={() => setView('product')} onOpenReservoir={() => setView('reservoir')} />}
+      {view === 'reservoir' && <ReservoirCalculator />}
+      {view === 'product' && <ProductCalculator />}
+      {view === 'project' && <ProjectDashboard />}
+
+      {view === 'catalog' && (
         <section className="panel">
           <div className="panelHead">
-            <div>
-              <div className="eyebrow dark">BANCO V9</div>
-              <h2>Catálogo mestre</h2>
-            </div>
+            <div><div className="eyebrow dark">BANCO V9</div><h2>Catálogo mestre</h2><p>Produtos sem fonte técnica suficiente permanecem bloqueados para cálculo automático.</p></div>
             <div className="filters">
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Buscar produto..."
-                aria-label="Buscar produto"
-              />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar produto..." aria-label="Buscar produto" />
               <select value={status} onChange={(event) => setStatus(event.target.value)}>
                 <option value="all">Todos os status</option>
                 <option value="verified_mixed">Verificados</option>
@@ -98,21 +99,21 @@ export default function App() {
           <div className="productGrid">
             {products.map((product) => (
               <article className="productCard" key={product.id}>
-                <div className={`status status-${product.technicalStatus}`}>
-                  {statusLabel[product.technicalStatus]}
-                </div>
+                <div className={`status status-${product.technicalStatus}`}>{statusLabel[product.technicalStatus]}</div>
                 <h3>{product.name}</h3>
                 <p>{product.packageLabel}</p>
-                <div className="productMeta">
-                  <span>{product.calculationModel}</span>
-                  <span>{product.categoryId}</span>
-                </div>
+                <div className="productMeta"><span>{product.calculationModel}</span><span>{product.categoryId}</span></div>
                 <a href={product.officialUrl} target="_blank" rel="noreferrer">Página oficial ↗</a>
               </article>
             ))}
           </div>
         </section>
       )}
+
+      <footer className="appFooter">
+        <strong>IMPERTUDO • Calculadora Técnica V9.0</strong>
+        <span>Pré-dimensionamento. Verifique ficha técnica vigente, projeto, condições da obra e medidas in loco.</span>
+      </footer>
     </main>
   )
 }
