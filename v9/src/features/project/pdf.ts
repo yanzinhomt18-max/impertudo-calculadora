@@ -1,19 +1,45 @@
-import { jsPDF } from 'jspdf'
 import type { CommercialLine, ConsolidatedMaterial, QuoteTotals } from '../../engine/consolidation'
 import type { ProjectState } from '../../project/types'
 
 const money = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 const qty = (value: number) => new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(value)
 
-export function generateProjectPdf(project: ProjectState, materials: ConsolidatedMaterial[], lines: CommercialLine[], totals: QuoteTotals): void {
-  const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true })
+async function loadLogo(): Promise<{ data: string; ratio: number } | null> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      try {
+        const width = img.naturalWidth || 800
+        const height = img.naturalHeight || 666
+        const scale = Math.min(1, 900 / Math.max(width, height))
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.max(1, Math.round(width * scale))
+        canvas.height = Math.max(1, Math.round(height * scale))
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return resolve(null)
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        resolve({ data: canvas.toDataURL('image/png'), ratio: canvas.width / canvas.height })
+      } catch {
+        resolve(null)
+      }
+    }
+    img.onerror = () => resolve(null)
+    img.src = '/logo-impertudo.svg'
+  })
+}
+
+export async function generateProjectPdf(project: ProjectState, materials: ConsolidatedMaterial[], lines: CommercialLine[], totals: QuoteTotals): Promise<void> {
+  const [{ jsPDF }, logo] = await Promise.all([import('jspdf'), loadLogo()])
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true, putOnlyUsedFonts: true })
   const green: [number, number, number] = [8, 117, 72]
   const dark: [number, number, number] = [24, 50, 41]
   const muted: [number, number, number] = [91, 111, 102]
   const pageW = 210
   const margin = 14
   const contentW = pageW - margin * 2
-  let y = 15
+  let y = 14
 
   function ensure(height = 16) {
     if (y + height > 282) {
@@ -21,7 +47,6 @@ export function generateProjectPdf(project: ProjectState, materials: Consolidate
       y = 15
     }
   }
-
   function text(value: string, x: number, yy: number, size = 9, bold = false, color = dark, maxWidth?: number) {
     doc.setFont('helvetica', bold ? 'bold' : 'normal')
     doc.setFontSize(size)
@@ -29,16 +54,36 @@ export function generateProjectPdf(project: ProjectState, materials: Consolidate
     if (maxWidth) doc.text(String(value), x, yy, { maxWidth })
     else doc.text(String(value), x, yy)
   }
-
   function line(yy: number) {
     doc.setDrawColor(220, 231, 225)
     doc.line(margin, yy, pageW - margin, yy)
   }
 
-  text('IMPERTUDO', margin, y + 5, 20, true, green)
-  text('PROPOSTA / RESUMO DE MATERIAIS • V9.0', margin, y + 12, 9, true, dark)
-  text(`Emitido em ${new Date().toLocaleString('pt-BR')}`, pageW - margin - 52, y + 5, 7, false, muted)
-  y += 20
+  let headerX = margin
+  let headerH = 22
+  if (logo) {
+    let logoW = 34
+    let logoH = logoW / logo.ratio
+    if (logoH > 28) {
+      logoH = 28
+      logoW = logoH * logo.ratio
+    }
+    try {
+      doc.addImage(logo.data, 'PNG', margin, y, logoW, logoH, undefined, 'FAST')
+      headerX = margin + logoW + 8
+      headerH = Math.max(headerH, logoH)
+    } catch {
+      headerX = margin
+    }
+  }
+  text('PROPOSTA / RESUMO DE MATERIAIS', headerX, y + 7, 15, true, green)
+  text('Calculadora Técnica IMPERTUDO • V9.0', headerX, y + 14, 8.5, true, dark)
+  text(`Emitido em ${new Date().toLocaleString('pt-BR')}`, pageW - margin, y + 20, 7, false, muted)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(7)
+  doc.setTextColor(...muted)
+  doc.text(`Emitido em ${new Date().toLocaleString('pt-BR')}`, pageW - margin, y + 20, { align: 'right' })
+  y += headerH + 6
   line(y)
   y += 7
 
@@ -73,15 +118,16 @@ export function generateProjectPdf(project: ProjectState, materials: Consolidate
   ensure(18)
   text('CONDIÇÕES COMERCIAIS', margin, y, 10, true, green)
   y += 7
-
   if (lines.length) {
     for (const row of lines) {
       ensure(14)
       text(row.productName, margin, y, 8, true, dark, 77)
       text(`${row.count} × ${row.packageLabel}`, 92, y, 7, false, muted, 55)
       text(money(row.unitPrice), 151, y, 7, false, dark)
-      text(money(row.net), pageW - margin, y, 8, true, dark)
-      doc.text('', 0, 0)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(8)
+      doc.setTextColor(...dark)
+      doc.text(money(row.net), pageW - margin, y, { align: 'right' })
       line(y + 3)
       y += 8
     }
@@ -111,7 +157,6 @@ export function generateProjectPdf(project: ProjectState, materials: Consolidate
   y += 2
   text(`Forma selecionada: ${project.paymentMethod === 'cartao' ? 'Cartão' : project.paymentMethod === 'dinheiro' ? 'Dinheiro' : 'PIX'} — ${money(totals.selectedTotal)}`, margin, y, 10, true, green)
   y += 9
-
   if (project.notes) {
     ensure(20)
     text('Observações comerciais', margin, y, 8, true, dark)
@@ -128,7 +173,6 @@ export function generateProjectPdf(project: ProjectState, materials: Consolidate
   line(y)
   y += 6
   text('Pré-dimensionamento técnico. Conferir ficha técnica vigente, projeto, condições reais da obra e medidas in loco antes da compra e execução.', margin, y, 7, false, muted, contentW)
-
   const safe = projectName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase()
   doc.save(`impertudo-v9-${safe || 'projeto'}.pdf`)
 }
