@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { calculateReservoir, packageDisplay, type ReservoirCalculationResult, type ReservoirSolutionMode, type TopRuleId } from '../../engine/reservoir'
 import type { ReservoirShape, ReservoirStructure } from '../../engine/geometry'
+import { useProject } from '../../project/ProjectContext'
 
 const roleLabels: Record<string, string> = {
   negative_pressure_barrier: 'Barreira inicial / pressão negativa',
@@ -13,6 +14,7 @@ const format = (value: number, decimals = 2) => new Intl.NumberFormat('pt-BR', {
 }).format(value)
 
 export default function ReservoirCalculator() {
+  const { addCalculation } = useProject()
   const [shape, setShape] = useState<ReservoirShape>('rectangular')
   const [structure, setStructure] = useState<ReservoirStructure>('buried')
   const [lengthM, setLengthM] = useState(4)
@@ -25,6 +27,7 @@ export default function ReservoirCalculator() {
   const [topRuleId, setTopRuleId] = useState<TopRuleId>('negative-10mca')
   const [result, setResult] = useState<ReservoirCalculationResult | null>(null)
   const [error, setError] = useState('')
+  const [saved, setSaved] = useState(false)
 
   const structureHint = useMemo(() => {
     if (structure === 'buried') return 'Estrutura em contato com o solo. O sistema TOP FLEX cadastrado inclui a preparação específica do banco V9.'
@@ -34,6 +37,7 @@ export default function ReservoirCalculator() {
 
   function handleCalculate() {
     setError('')
+    setSaved(false)
     try {
       const next = calculateReservoir({
         shape,
@@ -54,6 +58,32 @@ export default function ReservoirCalculator() {
       setResult(null)
       setError(err instanceof Error ? err.message : 'Não foi possível calcular.')
     }
+  }
+
+  function handleAddToProject() {
+    if (!result) return
+    addCalculation({
+      kind: 'reservoir',
+      title: result.systemName,
+      subtitle: `${structure === 'buried' ? 'Enterrado' : structure === 'elevated' ? 'Elevado' : 'Apoiado'} • ${shape === 'rectangular' ? 'Retangular' : 'Redondo'}`,
+      areaId: 'reservatorios',
+      metrics: [
+        { label: 'Área interna', value: `${format(result.geometry.internalAreaM2)} m²` },
+        { label: 'Área com perda', value: `${format(result.geometry.areaWithWasteM2)} m²` },
+        { label: 'Volume', value: `${format(result.geometry.volumeM3)} m³` },
+        { label: 'Capacidade', value: `${format(result.geometry.capacityLiters, 0)} L` }
+      ],
+      materials: result.layers.map((layer) => ({
+        productId: layer.productId,
+        productName: layer.productName,
+        role: roleLabels[layer.role] ?? layer.role,
+        minQuantity: layer.minQuantity,
+        maxQuantity: layer.maxQuantity,
+        unit: layer.unit
+      })),
+      notes: result.notes
+    })
+    setSaved(true)
   }
 
   return (
@@ -140,7 +170,10 @@ export default function ReservoirCalculator() {
               <div className="eyebrow dark">RESULTADO V9</div>
               <h2>{result.systemName}</h2>
             </div>
-            <span className="verifiedPill">dados rastreáveis</span>
+            <div className="resultActions">
+              <span className="verifiedPill">dados rastreáveis</span>
+              <button className="secondaryButton" onClick={handleAddToProject}>{saved ? 'Adicionado ✓' : 'Adicionar ao Projeto/Obra'}</button>
+            </div>
           </div>
 
           <div className="resultMetrics">
