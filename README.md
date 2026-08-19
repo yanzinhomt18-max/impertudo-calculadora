@@ -2,7 +2,7 @@
 
 Projeto da calculadora técnica de materiais IMPERTUDO.
 
-## V8.2 em homologação
+## V8.2 — produção
 
 - cálculo de área por m² direto, retângulo ou perímetro × altura;
 - perdas e demãos parametrizadas;
@@ -12,4 +12,5 @@ Projeto da calculadora técnica de materiais IMPERTUDO.
 - desconto item a item em % ou R$;
 - PDF nativo com jsPDF;
 - catálogo persistido em localStorage;
-- build single-file para Vercel, mantendo somente o Service Worker separado.
+- build single-file para Vercel, mantendo somente o Service Worker separado;
+- repositório GitHub conectado ao projeto Vercel para deploy automático da branch `main`.
