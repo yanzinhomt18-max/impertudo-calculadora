@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { applicationAreas, categories, productDatabase, systems } from './db'
+import ReservoirCalculator from './features/reservoir/ReservoirCalculator'
 import './styles.css'
 
 const statusLabel: Record<string, string> = {
@@ -9,7 +10,10 @@ const statusLabel: Record<string, string> = {
   previous_technical_pending_revalidation: 'Revalidar ficha'
 }
 
+type View = 'reservoir' | 'catalog'
+
 export default function App() {
+  const [view, setView] = useState<View>('reservoir')
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
 
@@ -36,8 +40,8 @@ export default function App() {
         <div className="eyebrow">IMPERTUDO • NOVA ARQUITETURA</div>
         <h1>Calculadora Técnica V9.0</h1>
         <p>
-          Primeiro marco da reconstrução: banco técnico versionado, rastreável e preparado
-          para cálculo por produto, sistema, ambiente e projeto.
+          Banco rastreável, motor matemático independente e cálculo guiado por sistema.
+          O primeiro módulo funcional é o pré-dimensionamento de reservatórios.
         </p>
         <div className="heroBadges">
           <span>{productDatabase.meta.productCount} produtos</span>
@@ -54,46 +58,61 @@ export default function App() {
         <article><strong>{counts.get('pending') ?? 0}</strong><span>pendentes de ficha</span></article>
       </section>
 
-      <section className="panel">
-        <div className="panelHead">
-          <div>
-            <div className="eyebrow dark">BANCO V9</div>
-            <h2>Catálogo mestre</h2>
-          </div>
-          <div className="filters">
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Buscar produto..."
-              aria-label="Buscar produto"
-            />
-            <select value={status} onChange={(event) => setStatus(event.target.value)}>
-              <option value="all">Todos os status</option>
-              <option value="verified_mixed">Verificados</option>
-              <option value="official_partial">Oficiais parciais</option>
-              <option value="previous_technical_pending_revalidation">Revalidar ficha</option>
-              <option value="pending">Pendentes</option>
-            </select>
-          </div>
-        </div>
+      <nav className="appNav" aria-label="Módulos da calculadora">
+        <button className={view === 'reservoir' ? 'active' : ''} onClick={() => setView('reservoir')}>
+          Reservatórios
+          <small>primeiro módulo</small>
+        </button>
+        <button className={view === 'catalog' ? 'active' : ''} onClick={() => setView('catalog')}>
+          Banco técnico
+          <small>auditoria dos produtos</small>
+        </button>
+      </nav>
 
-        <div className="productGrid">
-          {products.map((product) => (
-            <article className="productCard" key={product.id}>
-              <div className={`status status-${product.technicalStatus}`}>
-                {statusLabel[product.technicalStatus]}
-              </div>
-              <h3>{product.name}</h3>
-              <p>{product.packageLabel}</p>
-              <div className="productMeta">
-                <span>{product.calculationModel}</span>
-                <span>{product.categoryId}</span>
-              </div>
-              <a href={product.officialUrl} target="_blank" rel="noreferrer">Página oficial ↗</a>
-            </article>
-          ))}
-        </div>
-      </section>
+      {view === 'reservoir' ? (
+        <ReservoirCalculator />
+      ) : (
+        <section className="panel">
+          <div className="panelHead">
+            <div>
+              <div className="eyebrow dark">BANCO V9</div>
+              <h2>Catálogo mestre</h2>
+            </div>
+            <div className="filters">
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Buscar produto..."
+                aria-label="Buscar produto"
+              />
+              <select value={status} onChange={(event) => setStatus(event.target.value)}>
+                <option value="all">Todos os status</option>
+                <option value="verified_mixed">Verificados</option>
+                <option value="official_partial">Oficiais parciais</option>
+                <option value="previous_technical_pending_revalidation">Revalidar ficha</option>
+                <option value="pending">Pendentes</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="productGrid">
+            {products.map((product) => (
+              <article className="productCard" key={product.id}>
+                <div className={`status status-${product.technicalStatus}`}>
+                  {statusLabel[product.technicalStatus]}
+                </div>
+                <h3>{product.name}</h3>
+                <p>{product.packageLabel}</p>
+                <div className="productMeta">
+                  <span>{product.calculationModel}</span>
+                  <span>{product.categoryId}</span>
+                </div>
+                <a href={product.officialUrl} target="_blank" rel="noreferrer">Página oficial ↗</a>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
     </main>
   )
 }
