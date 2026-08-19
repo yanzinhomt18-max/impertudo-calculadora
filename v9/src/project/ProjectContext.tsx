@@ -11,16 +11,33 @@ import {
   upsertProject
 } from './storage'
 import { createEmptyProject, createId, type PaymentMethod, type PricingRecord, type ProjectCalculation, type ProjectState } from './types'
+import {
+  applyCatalogToPricing,
+  loadPriceCatalog,
+  parsePriceCatalog,
+  removeCatalogPrice,
+  savePriceCatalog,
+  serializePriceCatalog,
+  upsertCatalogPrice,
+  type PriceCatalog,
+  type PriceCatalogEntryMeta
+} from '../pricing/catalog'
 
 interface ProjectContextValue {
   project: ProjectState
   savedProjects: ProjectState[]
   isCurrentSaved: boolean
   storageOk: boolean
+  priceCatalog: PriceCatalog
   updateMeta: (patch: Partial<Pick<ProjectState, 'client' | 'projectName' | 'location' | 'consultant' | 'validityDays' | 'notes'>>) => void
   addCalculation: (calculation: Omit<ProjectCalculation, 'id' | 'createdAt'>) => string
   removeCalculation: (id: string) => void
   updatePricing: (key: string, patch: Partial<PricingRecord>) => void
+  updateCatalogPrice: (meta: PriceCatalogEntryMeta, unitPrice: number) => void
+  clearCatalogPrice: (key: string) => void
+  applyCatalogToCurrentProject: (keys?: string[], onlyMissing?: boolean) => number
+  exportPriceCatalog: () => string
+  importPriceCatalog: (text: string) => number
   setCashDiscountPct: (value: number) => void
   setPaymentMethod: (value: PaymentMethod) => void
   setChecklistItem: (key: string, checked: boolean) => void
@@ -39,6 +56,7 @@ const touch = (project: ProjectState): ProjectState => ({ ...project, updatedAt:
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const [project, setProject] = useState<ProjectState>(() => loadProject())
   const [savedProjects, setSavedProjects] = useState<ProjectState[]>(() => loadProjectLibrary())
+  const [priceCatalog, setPriceCatalog] = useState<PriceCatalog>(() => loadPriceCatalog())
   const [storageOk, setStorageOk] = useState(true)
 
   function persistLibrary(projects: ProjectState[]): ProjectState[] {
@@ -54,6 +72,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     })
   }, [project])
 
+  useEffect(() => {
+    if (!savePriceCatalog(priceCatalog)) setStorageOk(false)
+  }, [priceCatalog])
+
   const isCurrentSaved = savedProjects.some((item) => item.id === project.id)
 
   const value = useMemo<ProjectContextValue>(() => ({
@@ -61,6 +83,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     savedProjects,
     isCurrentSaved,
     storageOk,
+    priceCatalog,
     updateMeta(patch) { setProject((current) => touch({ ...current, ...patch })) },
     addCalculation(calculation) {
       const id = createId('calc')
@@ -74,6 +97,27 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         const previous = current.pricing[key] ?? { unitPrice: 0, discountType: 'pct' as const, discountValue: 0 }
         return touch({ ...current, pricing: { ...current.pricing, [key]: { ...previous, ...patch } } })
       })
+    },
+    updateCatalogPrice(meta, unitPrice) {
+      setPriceCatalog((current) => upsertCatalogPrice(current, meta, unitPrice))
+    },
+    clearCatalogPrice(key) {
+      setPriceCatalog((current) => removeCatalogPrice(current, key))
+    },
+    applyCatalogToCurrentProject(keys, onlyMissing = false) {
+      const result = applyCatalogToPricing(project.pricing, priceCatalog, keys, onlyMissing)
+      if (result.applied > 0) setProject(touch({ ...project, pricing: result.pricing }))
+      return result.applied
+    },
+    exportPriceCatalog() { return serializePriceCatalog(priceCatalog) },
+    importPriceCatalog(text) {
+      const imported = parsePriceCatalog(text)
+      setPriceCatalog((current) => ({
+        version: 1,
+        updatedAt: new Date().toISOString(),
+        entries: { ...current.entries, ...imported.entries }
+      }))
+      return Object.keys(imported.entries).length
     },
     setCashDiscountPct(value) {
       const safe = Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0))
@@ -121,7 +165,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       if (!clearStoredProject()) setStorageOk(false)
       setProject(createEmptyProject())
     }
-  }), [project, savedProjects, isCurrentSaved, storageOk])
+  }), [project, savedProjects, isCurrentSaved, storageOk, priceCatalog])
 
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>
 }
