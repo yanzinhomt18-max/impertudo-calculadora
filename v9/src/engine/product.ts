@@ -50,6 +50,7 @@ export interface ProductCalculationInput {
   jointLengthM?: number
   jointWidthMm?: number
   jointDepthMm?: number
+  concreteVolumeM3?: number
 }
 
 export interface ProductCalculationResult {
@@ -61,6 +62,7 @@ export interface ProductCalculationResult {
   rawAreaM2?: number
   areaWithWasteM2?: number
   wastePercent?: number
+  concreteVolumeM3?: number
   minQuantity: number
   maxQuantity: number
   unit: QuantityUnit
@@ -121,7 +123,11 @@ export function getProductOptions(product: ProductRecord): ProductOption[] {
     return rules.map((rule) => ({ id: rule.id, label: rule.label ?? rule.id, type: 'profile' }))
   }
   if (product.calculationModel === 'multi_mode') {
-    return modes(product).map((rule) => ({ id: rule.id, label: rule.label ?? (rule.id === 'area' ? 'Por área' : rule.id === 'joint' ? 'Por junta' : rule.id), type: 'mode' }))
+    return modes(product).map((rule) => ({
+      id: rule.id,
+      label: rule.label ?? (rule.id === 'area' ? 'Por área' : rule.id === 'joint' ? 'Por junta' : rule.id === 'concrete' ? 'Por volume de concreto' : rule.id),
+      type: 'mode'
+    }))
   }
   if (product.calculationModel === 'area_consumption' || product.calculationModel === 'area_consumption_range') {
     return rangeRules(product, 'consumptionRules').map((rule) => ({ id: rule.id, label: rule.label ?? rule.id, type: 'consumption' }))
@@ -284,6 +290,36 @@ function jointByReference(product: ProductRecord, input: ProductCalculationInput
   }
 }
 
+function concreteByDose(product: ProductRecord, input: ProductCalculationInput, mode: ModeRule): ProductCalculationResult {
+  const volume = requirePositive(input.concreteVolumeM3, 'Volume de concreto')
+  const min = typeof mode.min === 'number' ? mode.min : mode.consumption
+  const max = typeof mode.max === 'number' ? mode.max : mode.consumption
+  if (typeof min !== 'number' || typeof max !== 'number' || min <= 0 || max <= 0 || max < min) {
+    throw new Error(`Dosagem por m³ não cadastrada corretamente para ${product.name}.`)
+  }
+  const normalized = mode.unit.toLowerCase().replace(/³/g, '3').replace(/\s/g, '')
+  if (!normalized.includes('/m3')) throw new Error(`Unidade de dosagem ainda não suportada: ${mode.unit}`)
+  const unit = parseConsumptionUnit(mode.unit)
+  const minQuantity = roundQuantity(volume * min, 4)
+  const maxQuantity = roundQuantity(volume * max, 4)
+  const packs = packageResult(product, minQuantity, maxQuantity, unit)
+  const range = min === max ? `${max} ${mode.unit}` : `${min} a ${max} ${mode.unit}`
+  return {
+    productId: product.id,
+    productName: product.name,
+    optionId: mode.id,
+    optionLabel: mode.label ?? 'Por volume de concreto',
+    calculationModel: product.calculationModel,
+    concreteVolumeM3: volume,
+    minQuantity,
+    maxQuantity,
+    unit,
+    basisLabel: range,
+    ...packs,
+    notes: [`Dosagem aplicada a ${volume} m³ de concreto. Conferir resistência, traço e especificação do projeto.`]
+  }
+}
+
 function multiMode(product: ProductRecord, input: ProductCalculationInput): ProductCalculationResult {
   const all = modes(product)
   const mode = input.optionId ? all.find((item) => item.id === input.optionId) : all[0]
@@ -304,6 +340,7 @@ function multiMode(product: ProductRecord, input: ProductCalculationInput): Prod
       unit: mode.unit
     })
   }
+  if (mode.id === 'concrete') return concreteByDose(product, input, mode)
   throw new Error(`Modo ${mode.id} ainda não suportado.`)
 }
 
