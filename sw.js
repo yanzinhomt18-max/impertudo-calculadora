@@ -1,5 +1,5 @@
-const CACHE='impertudo-v8-2';
-const CORE=['./','./index.html'];
+const CACHE='impertudo-v8-2-1';
+const CORE=['./','./index.html','./manifest.webmanifest','./css/base.css','./css/theme.css','./css/v82.css'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{
