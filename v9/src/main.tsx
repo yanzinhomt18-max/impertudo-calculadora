@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App'
 import { ProjectProvider } from './project/ProjectContext'
 import './v9-app.css'
+import './v9-overrides.css'
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
