@@ -1,10 +1,10 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import fs from 'node:fs'
 
 const shots = 'qa-screenshots'
 const navLabels = ['Me ajude a escolher', 'Reservatórios', 'Por produto', 'Por sistema', 'Projeto / Obra', 'Banco técnico']
 
-function navButton(page: Parameters<typeof test>[0] extends never ? never : any, label: string) {
+function navButton(page: Page, label: string) {
   return page.locator('nav.appNav').getByRole('button', { name: label, exact: false })
 }
 
