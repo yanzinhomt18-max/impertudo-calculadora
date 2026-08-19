@@ -37,14 +37,24 @@ export function loadProject(): ProjectState {
   }
 }
 
-export function saveProject(project: ProjectState): void {
-  if (typeof localStorage === 'undefined') return
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(project))
+export function saveProject(project: ProjectState): boolean {
+  if (typeof localStorage === 'undefined') return false
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(project))
+    return true
+  } catch {
+    return false
+  }
 }
 
-export function clearStoredProject(): void {
-  if (typeof localStorage === 'undefined') return
-  localStorage.removeItem(STORAGE_KEY)
+export function clearStoredProject(): boolean {
+  if (typeof localStorage === 'undefined') return false
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+    return true
+  } catch {
+    return false
+  }
 }
 
 export function normalizeLibrary(values: unknown): ProjectState[] {
@@ -69,9 +79,14 @@ export function loadProjectLibrary(): ProjectState[] {
   }
 }
 
-export function saveProjectLibrary(projects: ProjectState[]): void {
-  if (typeof localStorage === 'undefined') return
-  localStorage.setItem(LIBRARY_KEY, JSON.stringify(normalizeLibrary(projects)))
+export function saveProjectLibrary(projects: ProjectState[]): boolean {
+  if (typeof localStorage === 'undefined') return false
+  try {
+    localStorage.setItem(LIBRARY_KEY, JSON.stringify(normalizeLibrary(projects)))
+    return true
+  } catch {
+    return false
+  }
 }
 
 export function upsertProject(projects: ProjectState[], project: ProjectState): ProjectState[] {
@@ -108,8 +123,6 @@ export function parseProjectBackup(text: string): ProjectBackup {
   }
 
   const single = normalizeProjectState(parsed)
-  if (single) {
-    return { backupVersion: 1, exportedAt: new Date().toISOString(), activeProject: single, projects: [single] }
-  }
+  if (single) return { backupVersion: 1, exportedAt: new Date().toISOString(), activeProject: single, projects: [single] }
   throw new Error('Arquivo de backup inválido ou incompatível com a V9.')
 }

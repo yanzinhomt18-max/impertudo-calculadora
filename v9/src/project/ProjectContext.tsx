@@ -16,6 +16,7 @@ interface ProjectContextValue {
   project: ProjectState
   savedProjects: ProjectState[]
   isCurrentSaved: boolean
+  storageOk: boolean
   updateMeta: (patch: Partial<Pick<ProjectState, 'client' | 'projectName' | 'location' | 'consultant' | 'validityDays' | 'notes'>>) => void
   addCalculation: (calculation: Omit<ProjectCalculation, 'id' | 'createdAt'>) => string
   removeCalculation: (id: string) => void
@@ -35,17 +36,18 @@ interface ProjectContextValue {
 const ProjectContext = createContext<ProjectContextValue | null>(null)
 const touch = (project: ProjectState): ProjectState => ({ ...project, updatedAt: new Date().toISOString() })
 
-function persistLibrary(projects: ProjectState[]): ProjectState[] {
-  saveProjectLibrary(projects)
-  return projects
-}
-
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const [project, setProject] = useState<ProjectState>(() => loadProject())
   const [savedProjects, setSavedProjects] = useState<ProjectState[]>(() => loadProjectLibrary())
+  const [storageOk, setStorageOk] = useState(true)
+
+  function persistLibrary(projects: ProjectState[]): ProjectState[] {
+    if (!saveProjectLibrary(projects)) setStorageOk(false)
+    return projects
+  }
 
   useEffect(() => {
-    saveProject(project)
+    if (!saveProject(project)) setStorageOk(false)
     setSavedProjects((current) => {
       if (!current.some((item) => item.id === project.id)) return current
       return persistLibrary(upsertProject(current, project))
@@ -58,6 +60,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     project,
     savedProjects,
     isCurrentSaved,
+    storageOk,
     updateMeta(patch) { setProject((current) => touch({ ...current, ...patch })) },
     addCalculation(calculation) {
       const id = createId('calc')
@@ -103,9 +106,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     deleteSavedProject(id) {
       setSavedProjects((current) => persistLibrary(removeProject(current, id)))
     },
-    exportBackup() {
-      return serializeProjectBackup(project, savedProjects)
-    },
+    exportBackup() { return serializeProjectBackup(project, savedProjects) },
     importBackup(text) {
       const backup = parseProjectBackup(text)
       setSavedProjects((current) => {
@@ -117,10 +118,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       return backup.projects.length
     },
     resetProject() {
-      clearStoredProject()
+      if (!clearStoredProject()) setStorageOk(false)
       setProject(createEmptyProject())
     }
-  }), [project, savedProjects, isCurrentSaved])
+  }), [project, savedProjects, isCurrentSaved, storageOk])
 
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>
 }

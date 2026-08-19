@@ -1,9 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
+import AppErrorBoundary from './AppErrorBoundary'
 import { ProjectProvider } from './project/ProjectContext'
 import './v9-app.css'
-import './v9-overrides.css'
+import './v9-reliability.css'
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
@@ -14,7 +15,9 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ProjectProvider>
-      <App />
+      <AppErrorBoundary>
+        <App />
+      </AppErrorBoundary>
     </ProjectProvider>
   </StrictMode>
 )

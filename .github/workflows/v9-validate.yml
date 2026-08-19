@@ -34,7 +34,10 @@ jobs:
         run: |
           test -f dist/index.html
           test -f dist/sw.js
+          test -f dist/precache.json
           test -f dist/manifest.webmanifest
           test -f dist/icon.svg
           test -f dist/logo-impertudo.svg
           grep -q "Calculadora Técnica IMPERTUDO" dist/index.html
+          grep -q '"/assets/' dist/precache.json
+          ! grep -q '__BUILD_ID__' dist/sw.js

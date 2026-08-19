@@ -15,6 +15,7 @@ export default function ProjectLibraryPanel() {
     project,
     savedProjects,
     isCurrentSaved,
+    storageOk,
     saveCurrentToLibrary,
     openSavedProject,
     duplicateCurrentProject,
@@ -56,6 +57,7 @@ export default function ProjectLibraryPanel() {
 
   return (
     <section className="projectLibraryPanel">
+      {!storageOk && <div className="storageWarning"><strong>Atenção ao armazenamento local</strong><span>O navegador recusou uma gravação local. Exporte um backup JSON antes de fechar ou atualizar a página.</span><button className="secondaryButton" onClick={exportJson}>Exportar backup agora</button></div>}
       <div className="libraryHead">
         <div>
           <div className="eyebrow dark">BIBLIOTECA DE OBRAS</div>
