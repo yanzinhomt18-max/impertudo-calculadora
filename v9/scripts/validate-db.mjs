@@ -4,25 +4,32 @@ const read = (path) => JSON.parse(fs.readFileSync(new URL(path, import.meta.url)
 const meta = read('../src/data/catalog-meta.json')
 const chunks = [1,2,3,4,5].map((n) => read(`../src/data/products-${n}.json`).products)
 const baseProducts = chunks.flat()
-const overridesFile = read('../src/data/verified-overrides.json')
+const overrideFiles = [
+  read('../src/data/verified-overrides.json'),
+  read('../src/data/verified-overrides-phase3.json')
+]
 const categories = read('../src/data/categories.json')
 const areas = read('../src/data/application-areas.json')
 const systems = read('../src/data/systems.json')
 
 const errors = []
 const baseIds = new Set(baseProducts.map((x) => x.id))
-const overrideIds = new Set()
 const overrides = new Map()
+let overrideCount = 0
 
-for (const override of overridesFile.overrides ?? []) {
-  if (!override?.id) {
-    errors.push('Override sem id.')
-    continue
+for (const overrideFile of overrideFiles) {
+  const localIds = new Set()
+  for (const override of overrideFile.overrides ?? []) {
+    if (!override?.id) {
+      errors.push('Override sem id.')
+      continue
+    }
+    if (localIds.has(override.id)) errors.push(`Override duplicado no mesmo arquivo: ${override.id}`)
+    localIds.add(override.id)
+    if (!baseIds.has(override.id)) errors.push(`Override aponta para produto inexistente: ${override.id}`)
+    overrides.set(override.id, override)
+    overrideCount += 1
   }
-  if (overrideIds.has(override.id)) errors.push(`Override duplicado: ${override.id}`)
-  overrideIds.add(override.id)
-  if (!baseIds.has(override.id)) errors.push(`Override aponta para produto inexistente: ${override.id}`)
-  overrides.set(override.id, override)
 }
 
 const merged = baseProducts.map((product) => ({ ...product, ...(overrides.get(product.id) ?? {}), id: product.id }))
@@ -62,4 +69,4 @@ if (errors.length) {
   process.exit(1)
 }
 
-console.log(`Banco V9 válido: ${products.products.length} produtos, ${categoryIds.size} categorias, ${areaIds.size} ambientes, ${systems.systems.length} sistemas, ${overrideIds.size} revisões oficiais.`)
+console.log(`Banco V9 válido: ${products.products.length} produtos, ${categoryIds.size} categorias, ${areaIds.size} ambientes, ${systems.systems.length} sistemas, ${overrideCount} revisões técnicas em ${overrideFiles.length} camada(s).`)
