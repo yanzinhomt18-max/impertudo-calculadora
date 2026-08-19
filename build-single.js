@@ -44,7 +44,8 @@ const extras=[
  '<script src="./js/v82-proposal.js"></script>',
  '<script src="./js/v82-init.js"></script>',
  '<script src="./js/v83-stability.js"></script>',
- '<script src="./js/v83-commercial.js"></script>'
+ '<script src="./js/v83-commercial.js"></script>',
+ '<script src="./js/v83-install.js"></script>'
 ].join('\n');
 html=html.replace('</body>',extras+'\n</body>');
 html=html.replace(/Versão 8[^<]*/,'Versão 8.3 • estabilidade, offline e proposta revisada');
