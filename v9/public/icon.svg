@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="IMPERTUDO V9">
+  <rect width="512" height="512" rx="112" fill="#087548"/>
+  <path d="M118 338V156h54v182h-54Zm78 0V156h54l52 91 52-91h54v182h-54V246l-52 88-52-88v92h-54Z" fill="#fff"/>
+  <rect x="116" y="372" width="280" height="14" rx="7" fill="#8dd1ad"/>
+</svg>
