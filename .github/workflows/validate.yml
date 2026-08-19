@@ -13,6 +13,21 @@ jobs:
           node-version: 22
       - name: Check JavaScript syntax
         run: |
-          for f in js/*.js data/*.js; do
+          for f in js/*.js data/*.js build-single.js; do
             node --check "$f"
           done
+      - name: Install build dependency
+        run: npm install --no-audit --no-fund
+      - name: Build V8.3
+        run: npm run build
+      - name: Validate deployment bundle
+        run: |
+          test -f dist/index.html
+          test -f dist/vendor/jspdf.umd.min.js
+          test -f dist/js/catalog-cache.js
+          test -f dist/js/v83-stability.js
+          test -f dist/js/v83-commercial.js
+          test -f dist/js/v83-install.js
+          grep -q "Versão 8.3" dist/index.html
+          grep -q "./js/catalog-cache.js" dist/index.html
+          grep -q "./vendor/jspdf.umd.min.js" dist/index.html
