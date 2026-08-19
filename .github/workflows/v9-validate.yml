@@ -1,0 +1,30 @@
+name: Validate V9
+
+on:
+  push:
+    branches: [v9-main]
+    paths:
+      - 'v9/**'
+      - '.github/workflows/v9-validate.yml'
+  pull_request:
+    paths:
+      - 'v9/**'
+      - '.github/workflows/v9-validate.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install dependencies
+        run: npm install
+      - name: Validate database
+        run: npm run validate:db
+      - name: Build V9
+        run: npm run build
