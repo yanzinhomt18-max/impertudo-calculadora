@@ -4,32 +4,48 @@ Reconstrução do projeto em arquitetura limpa, com banco técnico rastreável e
 
 ## Estado atual
 
-A V9 está em **homologação alpha funcional**. A V8.3 permanece como produção.
+A V9 está em **homologação alpha funcional — Fase 2**. A V8.3 permanece como produção.
 
 ### Já implementado
 
 - banco mestre com 68 produtos, 28 categorias e 18 ambientes;
-- status e fonte por produto;
+- status, fonte e data de revisão técnica por produto;
+- camada `verified-overrides.json` para revisões oficiais incrementais sem reescrever o catálogo-base;
 - bloqueio automático de dados pendentes ou ainda não revalidados;
 - área por m² direto, comprimento × largura e perímetro × altura;
 - reservatórios retangulares e cilíndricos;
 - cálculo por produto;
 - cálculo por sistema em camadas;
-- assistente técnico por ambiente e filtros cadastrados;
+- cálculo por volume de concreto em produtos com dosagem oficial por m³;
+- assistente técnico por ambiente e filtros cadastrados, preservando o produto/sistema selecionado ao abrir o cálculo;
 - consumo mínimo/máximo e margem de perda;
 - embalagens mínimas e compra recomendada;
 - combinação comercial com menor sobra;
 - Modo Projeto/Obra com persistência local;
+- checklist prévio da obra;
 - consolidação dos materiais antes do arredondamento de embalagens;
 - orçamento com preço por embalagem;
 - desconto por item em percentual **ou** valor fixo;
 - desconto adicional para PIX/Dinheiro separado do desconto do item;
 - cartão sem desconto adicional à vista;
 - resumo copiável e envio via WhatsApp;
-- PDF nativo;
+- PDF nativo com carregamento sob demanda;
 - PWA, Service Worker e orientação de instalação Android/iOS;
 - layout responsivo e logo original IMPERTUDO;
 - testes automatizados, validação do banco e validação do pacote PWA no GitHub Actions.
+
+## Fase 2 — enriquecimento técnico
+
+A Fase 2 começou a promover registros do catálogo somente quando uma fonte oficial atual é suficiente para sustentar o dado cadastrado.
+
+Revisões oficiais já incorporadas nesta camada incluem:
+
+- **IMPERTUDO LAJE PRETO:** embalagens, aplicações, 3 demãos e consumo mínimo de 3 kg/m²;
+- **MANTA ASFÁLTICA IV B POLIÉSTER:** rolo 1 × 10 m, primer, métodos de aplicação e sobreposições;
+- **IMPERTUDO PU 40:** embalagens e aplicações atualizadas, mantendo o cálculo de junta bloqueado por falta de referência numérica suficiente;
+- **IMPERTUDO ADMIX CRISTAL C:** embalagem 800 g, dosagem 800 g/m³ para concreto de 25–50 MPa e modo de pintura 800 g/10 L para 10 m²;
+- **IMPERTUDO CHAPISCO CONCENTRADO:** embalagem e diluição 1:7 registradas, sem liberar quantitativo comercial enquanto rendimento/consumo não estiver fechado;
+- **IMPERTUDO GRAUTE FLUIDO:** embalagem e água de mistura registradas, mantendo cálculo por volume bloqueado até confirmar rendimento volumétrico.
 
 ## Política técnica
 
@@ -39,6 +55,7 @@ A V9 está em **homologação alpha funcional**. A V8.3 permanece como produçã
 4. **Produto ≠ sistema:** uma regra de produto isolado não substitui uma regra específica de composição técnica.
 5. **Cálculo único:** o mesmo motor alimenta resultado, Projeto/Obra, consolidação e proposta.
 6. **Compra depois da consolidação:** a V9 soma a necessidade total do mesmo produto antes de arredondar embalagens.
+7. **Revisão incremental:** dados confirmados entram na camada de overrides com data e fonte, preservando o cadastro-base para auditoria.
 
 ## Banco inicial
 
@@ -63,7 +80,7 @@ A cobertura automática crescerá conforme as fichas forem revalidadas. Produtos
 
 O workflow `Validate V9` executa:
 
-1. validação de integridade do banco;
+1. validação de integridade do banco e da camada de revisões oficiais;
 2. testes do motor matemático;
 3. checagem TypeScript;
 4. build Vite;
@@ -75,4 +92,5 @@ Consulte `docs/execution-plan.md` para a ordem completa de desenvolvimento.
 
 - nem todos os 68 produtos possuem dados técnicos suficientes para cálculo automático;
 - a quantidade de sistemas completos cadastrados ainda é pequena e será ampliada somente com base técnica rastreável;
+- modelos como diluição e volume permanecem bloqueados quando a fonte disponível não fecha o quantitativo comercial;
 - a V9 ainda não substitui a V8.3 em produção enquanto estiver em homologação.

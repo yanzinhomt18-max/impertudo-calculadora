@@ -5,6 +5,11 @@ import { useProject } from '../../project/ProjectContext'
 import AreaEditor, { defaultAreaEditorState, resolveAreaEditor, type AreaEditorState } from '../shared/AreaEditor'
 
 const format = (value: number, decimals = 2) => new Intl.NumberFormat('pt-BR', { maximumFractionDigits: decimals }).format(value)
+const reviewDate = (value?: string) => {
+  if (!value) return ''
+  const [year, month, day] = value.split('-')
+  return year && month && day ? `${day}/${month}/${year}` : value
+}
 
 function isAreaModel(model: string, optionId?: string): boolean {
   if (model === 'multi_mode') return optionId === 'area'
@@ -37,9 +42,7 @@ export default function ProductCalculator({ preferredProductId }: { preferredPro
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    if (preferredProductId && autoCalculableProducts.some((item) => item.id === preferredProductId)) {
-      setProductId(preferredProductId)
-    }
+    if (preferredProductId && autoCalculableProducts.some((item) => item.id === preferredProductId)) setProductId(preferredProductId)
   }, [preferredProductId])
 
   useEffect(() => {
@@ -58,6 +61,8 @@ export default function ProductCalculator({ preferredProductId }: { preferredPro
   const perCoat = technical?.consumptionBasis === 'perCoat'
   const coatsMin = technical?.coatsMin ?? 1
   const coatsMax = technical?.coatsMax ?? coatsMin
+  const verifiedDates = product.sources.map((source) => source.verifiedOn).filter((value): value is string => Boolean(value)).sort()
+  const latestVerifiedOn = verifiedDates.length ? verifiedDates[verifiedDates.length - 1] : undefined
 
   function handleCalculate() {
     setSaved(false); setError('')
@@ -106,7 +111,7 @@ export default function ProductCalculator({ preferredProductId }: { preferredPro
         <article className="stepCard"><span className="stepNumber">1</span><h3>Produto e aplicação</h3>
           <label className="stackField"><span>Produto</span><select value={product.id} onChange={(e) => setProductId(e.target.value)}>{autoCalculableProducts.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
           {options.length > 0 && <label className="stackField"><span>Condição / modo de cálculo</span><select value={optionId} onChange={(e) => { setOptionId(e.target.value); setResult(null); setSaved(false) }}>{options.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select></label>}
-          <div className="sourceCard"><strong>{product.packageLabel}</strong><span>Status técnico: {product.technicalStatus === 'verified_mixed' ? 'verificado/misto' : 'oficial parcial'}</span><a href={product.officialUrl} target="_blank" rel="noreferrer">Abrir página oficial ↗</a></div>
+          <div className="sourceCard"><strong>{product.packageLabel}</strong><span>Status técnico: {product.technicalStatus === 'verified_mixed' ? 'verificado/misto' : 'oficial parcial'}</span>{latestVerifiedOn && <span>Revisão técnica: {reviewDate(latestVerifiedOn)}</span>}<a href={product.officialUrl} target="_blank" rel="noreferrer">Abrir página oficial ↗</a></div>
         </article>
         <article className="stepCard"><span className="stepNumber">2</span><h3>Dados do cálculo</h3>
           {areaMode && <AreaEditor value={area} onChange={(next) => { setArea(next); setResult(null); setSaved(false) }} />}

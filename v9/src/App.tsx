@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { applicationAreas, categories, productDatabase, systems } from './db'
+import { applicationAreas, categories, productDatabase } from './db'
 import ReservoirCalculator from './features/reservoir/ReservoirCalculator'
 import ProductCalculator from './features/product/ProductCalculator'
 import SystemCalculator from './features/system/SystemCalculator'
@@ -12,6 +12,14 @@ import './styles.css'
 
 const statusLabel: Record<string, string> = { pending: 'Pendente de ficha', official_partial: 'Oficial parcial', verified_mixed: 'Verificado', previous_technical_pending_revalidation: 'Revalidar ficha' }
 type View = 'assistant' | 'reservoir' | 'product' | 'system' | 'project' | 'catalog'
+type ProductItem = (typeof productDatabase.products)[number]
+
+function latestReview(product: ProductItem): string {
+  const dates = product.sources.map((source) => source.verifiedOn).filter((value): value is string => Boolean(value)).sort()
+  if (!dates.length) return ''
+  const [year, month, day] = dates[dates.length - 1].split('-')
+  return year && month && day ? `${day}/${month}/${year}` : dates[dates.length - 1]
+}
 
 export default function App() {
   const { project } = useProject()
@@ -60,7 +68,7 @@ export default function App() {
     {view === 'product' && <ProductCalculator preferredProductId={preferredProductId} />}
     {view === 'system' && <SystemCalculator preferredSystemId={preferredSystemId} />}
     {view === 'project' && <ProjectDashboard />}
-    {view === 'catalog' && <section className="panel"><div className="panelHead"><div><div className="eyebrow dark">BANCO V9</div><h2>Catálogo mestre</h2><p>Produtos sem fonte técnica suficiente permanecem bloqueados para cálculo automático.</p></div><div className="filters"><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar produto..." aria-label="Buscar produto" /><select value={status} onChange={(e) => setStatus(e.target.value)}><option value="all">Todos os status</option><option value="verified_mixed">Verificados</option><option value="official_partial">Oficiais parciais</option><option value="previous_technical_pending_revalidation">Revalidar ficha</option><option value="pending">Pendentes</option></select></div></div><div className="productGrid">{products.map((product) => { const auto = isProductAutoCalculable(product); return <article className="productCard" key={product.id}><div className={`status status-${product.technicalStatus}`}>{statusLabel[product.technicalStatus]}</div><h3>{product.name}</h3><p>{product.packageLabel}</p><div className="productMeta"><span>{product.calculationModel}</span><span>{product.categoryId}</span></div><div className="catalogActions"><a href={product.officialUrl} target="_blank" rel="noreferrer">Página oficial ↗</a>{auto && <button onClick={() => openProduct(product.id)}>Calcular</button>}</div></article> })}</div></section>}
+    {view === 'catalog' && <section className="panel"><div className="panelHead"><div><div className="eyebrow dark">BANCO V9</div><h2>Catálogo mestre</h2><p>Produtos sem fonte técnica suficiente permanecem bloqueados para cálculo automático.</p></div><div className="filters"><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar produto..." aria-label="Buscar produto" /><select value={status} onChange={(e) => setStatus(e.target.value)}><option value="all">Todos os status</option><option value="verified_mixed">Verificados</option><option value="official_partial">Oficiais parciais</option><option value="previous_technical_pending_revalidation">Revalidar ficha</option><option value="pending">Pendentes</option></select></div></div><div className="productGrid">{products.map((product) => { const auto = isProductAutoCalculable(product); const reviewed = latestReview(product); return <article className="productCard" key={product.id}><div className={`status status-${product.technicalStatus}`}>{statusLabel[product.technicalStatus]}</div><h3>{product.name}</h3><p>{product.packageLabel}</p><div className="productMeta"><span>{product.calculationModel}</span><span>{product.categoryId}</span></div>{reviewed && <small className="reviewMeta">Revisão técnica: {reviewed}</small>}<div className="catalogActions"><a href={product.officialUrl} target="_blank" rel="noreferrer">Página oficial ↗</a>{auto && <button onClick={() => openProduct(product.id)}>Calcular</button>}</div></article> })}</div></section>}
     <footer className="appFooter"><strong>IMPERTUDO • Calculadora Técnica V9.0</strong><span>Pré-dimensionamento. Verifique ficha técnica vigente, projeto, condições da obra e medidas in loco.</span></footer>
   </main>
 }
