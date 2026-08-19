@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createEmptyProject } from './types'
+import { createEmptyPriceCatalog, upsertCatalogPrice } from '../pricing/catalog'
 import { normalizeLibrary, normalizeProjectState, parseProjectBackup, serializeProjectBackup, upsertProject } from './storage'
 
 function project(id: string, name: string, updatedAt: string) {
@@ -42,13 +43,25 @@ describe('biblioteca de obras', () => {
     expect(result[0].projectName).toBe('Atualizada')
   })
 
-  it('exporta e importa backup completo', () => {
+  it('exporta backup v2 com obras e tabela central de preços', () => {
     const active = project('a', 'Ativa', '2026-08-19T10:00:00Z')
     const other = project('b', 'Outra', '2026-08-19T09:00:00Z')
-    const text = serializeProjectBackup(active, [other])
+    let prices = createEmptyPriceCatalog()
+    prices = upsertCatalogPrice(prices, { key: 'p|18|kg|bucket', productId: 'p', productName: 'Produto', packageLabel: 'Balde 18 kg' }, 99)
+    const text = serializeProjectBackup(active, [other], prices)
     const parsed = parseProjectBackup(text)
+    expect(parsed.backupVersion).toBe(2)
     expect(parsed.activeProject.id).toBe('a')
     expect(parsed.projects.map((item) => item.id).sort()).toEqual(['a', 'b'])
+    expect(parsed.priceCatalog?.entries['p|18|kg|bucket'].unitPrice).toBe(99)
+  })
+
+  it('continua aceitando backup v1 sem tabela de preços', () => {
+    const active = project('old', 'Backup antigo', '2026-08-19T10:00:00Z')
+    const parsed = parseProjectBackup(JSON.stringify({ backupVersion: 1, exportedAt: '2026-08-19T10:00:00Z', activeProject: active, projects: [active] }))
+    expect(parsed.backupVersion).toBe(1)
+    expect(parsed.priceCatalog).toBeUndefined()
+    expect(parsed.activeProject.id).toBe('old')
   })
 
   it('aceita um projeto V9 isolado como backup legado', () => {

@@ -1,13 +1,15 @@
 import { createEmptyProject, createProposalNumber, type ManualQuoteItem, type ProjectState } from './types'
+import { createEmptyPriceCatalog, normalizePriceCatalog, type PriceCatalog } from '../pricing/catalog'
 
 const STORAGE_KEY = 'impertudo-v9-project-v1'
 const LIBRARY_KEY = 'impertudo-v9-project-library-v1'
 
 export interface ProjectBackup {
-  backupVersion: 1
+  backupVersion: 1 | 2
   exportedAt: string
   activeProject: ProjectState
   projects: ProjectState[]
+  priceCatalog?: PriceCatalog
 }
 
 function normalizeManualItems(value: unknown): ManualQuoteItem[] {
@@ -122,28 +124,34 @@ export function removeProject(projects: ProjectState[], id: string): ProjectStat
   return projects.filter((item) => item.id !== id)
 }
 
-export function serializeProjectBackup(activeProject: ProjectState, projects: ProjectState[]): string {
+export function serializeProjectBackup(activeProject: ProjectState, projects: ProjectState[], priceCatalog: PriceCatalog = createEmptyPriceCatalog()): string {
   const backup: ProjectBackup = {
-    backupVersion: 1,
+    backupVersion: 2,
     exportedAt: new Date().toISOString(),
     activeProject,
-    projects: upsertProject(projects, activeProject)
+    projects: upsertProject(projects, activeProject),
+    priceCatalog
   }
   return JSON.stringify(backup, null, 2)
 }
 
 export function parseProjectBackup(text: string): ProjectBackup {
   const parsed: unknown = JSON.parse(text)
-  if (parsed && typeof parsed === 'object' && (parsed as { backupVersion?: unknown }).backupVersion === 1) {
-    const raw = parsed as { activeProject?: unknown; projects?: unknown; exportedAt?: unknown }
-    const projects = normalizeLibrary(raw.projects)
-    const activeProject = normalizeProjectState(raw.activeProject) ?? projects[0]
-    if (!activeProject) throw new Error('O backup não possui um projeto válido.')
-    return {
-      backupVersion: 1,
-      exportedAt: typeof raw.exportedAt === 'string' ? raw.exportedAt : new Date().toISOString(),
-      activeProject,
-      projects: upsertProject(projects, activeProject)
+  if (parsed && typeof parsed === 'object') {
+    const version = (parsed as { backupVersion?: unknown }).backupVersion
+    if (version === 1 || version === 2) {
+      const raw = parsed as { activeProject?: unknown; projects?: unknown; exportedAt?: unknown; priceCatalog?: unknown }
+      const projects = normalizeLibrary(raw.projects)
+      const activeProject = normalizeProjectState(raw.activeProject) ?? projects[0]
+      if (!activeProject) throw new Error('O backup não possui um projeto válido.')
+      const priceCatalog = version === 2 ? normalizePriceCatalog(raw.priceCatalog) : undefined
+      return {
+        backupVersion: version,
+        exportedAt: typeof raw.exportedAt === 'string' ? raw.exportedAt : new Date().toISOString(),
+        activeProject,
+        projects: upsertProject(projects, activeProject),
+        priceCatalog
+      }
     }
   }
 

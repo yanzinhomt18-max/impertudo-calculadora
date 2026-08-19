@@ -32,12 +32,12 @@ export default function ProjectLibraryPanel() {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `impertudo-v9-backup-${safeName(project.projectName || project.client || 'obras') || 'obras'}.json`
+    link.download = `impertudo-v9-backup-completo-${safeName(project.projectName || project.client || 'obras') || 'obras'}.json`
     document.body.appendChild(link)
     link.click()
     link.remove()
     URL.revokeObjectURL(url)
-    setStatus('Backup exportado ✓')
+    setStatus('Backup completo exportado ✓')
     window.setTimeout(() => setStatus(''), 2000)
   }
 
@@ -57,12 +57,12 @@ export default function ProjectLibraryPanel() {
 
   return (
     <section className="projectLibraryPanel">
-      {!storageOk && <div className="storageWarning"><strong>Atenção ao armazenamento local</strong><span>O navegador recusou uma gravação local. Exporte um backup JSON antes de fechar ou atualizar a página.</span><button className="secondaryButton" onClick={exportJson}>Exportar backup agora</button></div>}
+      {!storageOk && <div className="storageWarning"><strong>Atenção ao armazenamento local</strong><span>O navegador recusou uma gravação local. Exporte um backup completo antes de fechar ou atualizar a página.</span><button className="secondaryButton" onClick={exportJson}>Exportar backup agora</button></div>}
       <div className="libraryHead">
         <div>
           <div className="eyebrow dark">BIBLIOTECA DE OBRAS</div>
           <h3>Projetos salvos neste dispositivo</h3>
-          <p>Salve obras para reabrir depois. Enquanto uma obra estiver na biblioteca, alterações nela são atualizadas automaticamente.</p>
+          <p>Salve obras para reabrir depois. O backup completo inclui a obra ativa, a biblioteca e a tabela central de preços.</p>
         </div>
         <span className="libraryCounter">{savedProjects.length}</span>
       </div>
@@ -72,7 +72,7 @@ export default function ProjectLibraryPanel() {
           {isCurrentSaved ? 'Atualizar obra salva' : 'Salvar na biblioteca'}
         </button>
         <button className="secondaryButton" onClick={() => { duplicateCurrentProject(); setStatus('Cópia criada ✓'); window.setTimeout(() => setStatus(''), 1800) }}>Duplicar obra</button>
-        <button className="secondaryButton" onClick={exportJson}>Exportar backup</button>
+        <button className="secondaryButton" onClick={exportJson}>Exportar backup completo</button>
         <button className="secondaryButton" onClick={() => inputRef.current?.click()}>Importar backup</button>
         <input ref={inputRef} className="hiddenFileInput" type="file" accept="application/json,.json" onChange={importJson} />
         {status && <span className="libraryStatus">{status}</span>}
@@ -94,7 +94,7 @@ export default function ProjectLibraryPanel() {
                   </div>
                   <span>{item.calculations.length} cálculo(s)</span>
                 </div>
-                <div className="savedProjectMeta">Atualizada em {dateTime(item.updatedAt)}</div>
+                <div className="savedProjectMeta">{item.proposalNumber} • Atualizada em {dateTime(item.updatedAt)}</div>
                 <div className="savedProjectActions">
                   <button className="secondaryButton" disabled={active} onClick={() => { openSavedProject(item.id); setStatus('Obra aberta ✓'); window.setTimeout(() => setStatus(''), 1800) }}>{active ? 'Aberta' : 'Abrir obra'}</button>
                   <button className="dangerButton" onClick={() => {

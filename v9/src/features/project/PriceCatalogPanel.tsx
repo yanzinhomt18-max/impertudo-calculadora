@@ -19,7 +19,7 @@ interface CatalogRow {
 }
 
 export default function PriceCatalogPanel() {
-  const { priceCatalog, updateCatalogPrice, clearCatalogPrice, exportPriceCatalog, importPriceCatalog } = useProject()
+  const { priceCatalog, updateCatalogPrice, clearCatalogPrice, exportPriceCatalog, exportPriceCatalogCsv, importPriceCatalog } = useProject()
   const [query, setQuery] = useState('')
   const [onlyPriced, setOnlyPriced] = useState(false)
   const [status, setStatus] = useState('')
@@ -43,15 +43,17 @@ export default function PriceCatalogPanel() {
 
   const configured = rows.filter((row) => (priceCatalog.entries[row.key]?.unitPrice ?? 0) > 0).length
 
-  function downloadCatalog() {
-    const blob = new Blob([exportPriceCatalog()], { type: 'application/json;charset=utf-8' })
+  function download(content: string, extension: 'json' | 'csv') {
+    const type = extension === 'csv' ? 'text/csv;charset=utf-8' : 'application/json;charset=utf-8'
+    const prefix = extension === 'csv' ? '\uFEFF' : ''
+    const blob = new Blob([prefix, content], { type })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = `impertudo-tabela-precos-${new Date().toISOString().slice(0, 10)}.json`
+    anchor.download = `impertudo-tabela-precos-${new Date().toISOString().slice(0, 10)}.${extension}`
     anchor.click()
     URL.revokeObjectURL(url)
-    setStatus('Tabela exportada ✓')
+    setStatus(`Tabela ${extension.toUpperCase()} exportada ✓`)
   }
 
   async function importFile(file?: File) {
@@ -71,9 +73,9 @@ export default function PriceCatalogPanel() {
     <section className="priceCatalogPanel">
       <div className="priceCatalogHead">
         <div>
-          <div className="eyebrow dark">FASE 6 • TABELA CENTRAL</div>
+          <div className="eyebrow dark">FASE 6/8 • TABELA CENTRAL</div>
           <h2>Preços-base por embalagem</h2>
-          <p>O preço central alimenta obras novas. Propostas já precificadas preservam o valor histórico até uma atualização manual.</p>
+          <p>Edite diretamente ou exporte CSV para Excel. Ao importar, os preços encontrados são mesclados com a tabela existente.</p>
         </div>
         <div className="priceCatalogSummary"><strong>{configured}</strong><span>de {rows.length} embalagens com preço</span></div>
       </div>
@@ -81,9 +83,10 @@ export default function PriceCatalogPanel() {
       <div className="priceCatalogToolbar">
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar produto ou embalagem..." aria-label="Buscar na tabela de preços" />
         <label className="priceToggle"><input type="checkbox" checked={onlyPriced} onChange={(event) => setOnlyPriced(event.target.checked)} /><span>Somente com preço</span></label>
-        <button className="secondaryButton" onClick={downloadCatalog}>Exportar tabela</button>
-        <button className="secondaryButton" onClick={() => fileRef.current?.click()}>Importar tabela</button>
-        <input ref={fileRef} hidden type="file" accept="application/json,.json" onChange={(event) => void importFile(event.target.files?.[0])} />
+        <button className="secondaryButton" onClick={() => download(exportPriceCatalogCsv(), 'csv')}>CSV / Excel</button>
+        <button className="secondaryButton" onClick={() => download(exportPriceCatalog(), 'json')}>Backup JSON</button>
+        <button className="secondaryButton" onClick={() => fileRef.current?.click()}>Importar</button>
+        <input ref={fileRef} hidden type="file" accept="application/json,text/csv,.json,.csv" onChange={(event) => void importFile(event.target.files?.[0])} />
       </div>
 
       {status && <div className="catalogStatus">{status}</div>}
@@ -103,7 +106,7 @@ export default function PriceCatalogPanel() {
         })}
       </div>
       {!filtered.length && <div className="emptyState small">Nenhuma embalagem corresponde ao filtro atual.</div>}
-      <p className="disclaimer">A tabela central armazena preço-base comercial. Descontos percentuais ou em R$ continuam específicos de cada proposta.</p>
+      <p className="disclaimer">CSV usa ponto e vírgula como separador e vírgula decimal, facilitando a edição no Excel em configuração brasileira. Não altere a coluna “chave”.</p>
     </section>
   )
 }

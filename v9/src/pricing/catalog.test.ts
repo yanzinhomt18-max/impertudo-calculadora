@@ -6,6 +6,7 @@ import {
   normalizePriceCatalog,
   parsePriceCatalog,
   serializePriceCatalog,
+  serializePriceCatalogCsv,
   upsertCatalogPrice
 } from './catalog'
 
@@ -51,10 +52,20 @@ describe('tabela central de preços', () => {
     expect(result.applied).toBe(1)
   })
 
-  it('exporta e importa a tabela sem perder os preços', () => {
+  it('exporta e importa a tabela JSON sem perder os preços', () => {
     let catalog = createEmptyPriceCatalog()
     catalog = upsertCatalogPrice(catalog, { key: 'x', productId: 'x', productName: 'X', packageLabel: 'Caixa' }, 33.45)
     const restored = parsePriceCatalog(serializePriceCatalog(catalog))
     expect(restored.entries.x.unitPrice).toBe(33.45)
+  })
+
+  it('exporta CSV brasileiro e importa preço com vírgula decimal', () => {
+    let catalog = createEmptyPriceCatalog()
+    catalog = upsertCatalogPrice(catalog, { key: 'x|18|kg|bucket', productId: 'x', productName: 'Produto X', packageLabel: 'Balde 18 kg' }, 123.45)
+    const csv = serializePriceCatalogCsv(catalog)
+    expect(csv).toContain('123,45')
+    const restored = parsePriceCatalog(csv)
+    expect(restored.entries['x|18|kg|bucket'].unitPrice).toBe(123.45)
+    expect(restored.entries['x|18|kg|bucket'].productName).toBe('Produto X')
   })
 })

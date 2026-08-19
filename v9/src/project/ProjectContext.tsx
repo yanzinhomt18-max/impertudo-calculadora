@@ -25,10 +25,12 @@ import {
 import {
   applyCatalogToPricing,
   loadPriceCatalog,
+  mergePriceCatalogs,
   parsePriceCatalog,
   removeCatalogPrice,
   savePriceCatalog,
   serializePriceCatalog,
+  serializePriceCatalogCsv,
   upsertCatalogPrice,
   type PriceCatalog,
   type PriceCatalogEntryMeta
@@ -48,6 +50,7 @@ interface ProjectContextValue {
   clearCatalogPrice: (key: string) => void
   applyCatalogToCurrentProject: (keys?: string[], onlyMissing?: boolean) => number
   exportPriceCatalog: () => string
+  exportPriceCatalogCsv: () => string
   importPriceCatalog: (text: string) => number
   addManualItem: (category?: ManualQuoteCategory) => string
   updateManualItem: (id: string, patch: Partial<Omit<ManualQuoteItem, 'id'>>) => void
@@ -124,13 +127,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       return result.applied
     },
     exportPriceCatalog() { return serializePriceCatalog(priceCatalog) },
+    exportPriceCatalogCsv() { return serializePriceCatalogCsv(priceCatalog) },
     importPriceCatalog(text) {
       const imported = parsePriceCatalog(text)
-      setPriceCatalog((current) => ({
-        version: 1,
-        updatedAt: new Date().toISOString(),
-        entries: { ...current.entries, ...imported.entries }
-      }))
+      setPriceCatalog((current) => mergePriceCatalogs(current, imported))
       return Object.keys(imported.entries).length
     },
     addManualItem(category = 'service') {
@@ -179,7 +179,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     deleteSavedProject(id) {
       setSavedProjects((current) => persistLibrary(removeProject(current, id)))
     },
-    exportBackup() { return serializeProjectBackup(project, savedProjects) },
+    exportBackup() { return serializeProjectBackup(project, savedProjects, priceCatalog) },
     importBackup(text) {
       const backup = parseProjectBackup(text)
       setSavedProjects((current) => {
@@ -187,6 +187,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         for (const item of backup.projects) next = upsertProject(next, item)
         return persistLibrary(next)
       })
+      if (backup.priceCatalog) setPriceCatalog((current) => mergePriceCatalogs(current, backup.priceCatalog!))
       setProject(backup.activeProject)
       return backup.projects.length
     },

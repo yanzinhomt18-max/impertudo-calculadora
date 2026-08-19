@@ -82,6 +82,14 @@ export function removeCatalogPrice(catalog: PriceCatalog, key: string): PriceCat
   return { version: 1, updatedAt: new Date().toISOString(), entries }
 }
 
+export function mergePriceCatalogs(base: PriceCatalog, incoming: PriceCatalog): PriceCatalog {
+  return {
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    entries: { ...base.entries, ...incoming.entries }
+  }
+}
+
 export function mergePricingWithCatalog(pricing: Record<string, PricingRecord>, catalog: PriceCatalog): Record<string, PricingRecord> {
   const merged: Record<string, PricingRecord> = {}
   for (const [key, entry] of Object.entries(catalog.entries)) {
@@ -126,7 +134,83 @@ export function serializePriceCatalog(catalog: PriceCatalog): string {
   return JSON.stringify({ ...catalog, exportedAt: new Date().toISOString() }, null, 2)
 }
 
+function csvCell(value: string): string {
+  return /[;"\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value
+}
+
+function parseCsvLine(line: string): string[] {
+  const cells: string[] = []
+  let current = ''
+  let quoted = false
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i]
+    if (char === '"') {
+      if (quoted && line[i + 1] === '"') { current += '"'; i += 1 }
+      else quoted = !quoted
+    } else if (char === ';' && !quoted) {
+      cells.push(current)
+      current = ''
+    } else current += char
+  }
+  cells.push(current)
+  return cells
+}
+
+function parseBrazilianNumber(value: string): number {
+  const trimmed = value.trim()
+  if (!trimmed) return 0
+  const normalized = trimmed.includes(',') ? trimmed.replaceAll('.', '').replace(',', '.') : trimmed
+  return safePrice(normalized)
+}
+
+export function serializePriceCatalogCsv(catalog: PriceCatalog): string {
+  const header = 'chave;produto;embalagem;preco;atualizado'
+  const rows = Object.values(catalog.entries)
+    .sort((a, b) => a.productName.localeCompare(b.productName, 'pt-BR') || a.packageLabel.localeCompare(b.packageLabel, 'pt-BR'))
+    .map((entry) => [
+      csvCell(entry.key),
+      csvCell(entry.productName),
+      csvCell(entry.packageLabel),
+      entry.unitPrice.toFixed(2).replace('.', ','),
+      csvCell(entry.updatedAt)
+    ].join(';'))
+  return [header, ...rows].join('\n')
+}
+
+export function parsePriceCatalogCsv(text: string): PriceCatalog {
+  const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/).filter((line) => line.trim())
+  if (lines.length < 2) throw new Error('CSV de preços vazio ou inválido.')
+  const header = parseCsvLine(lines[0]).map((cell) => cell.trim().toLocaleLowerCase('pt-BR'))
+  const keyIndex = header.indexOf('chave')
+  const productIndex = header.indexOf('produto')
+  const packageIndex = header.indexOf('embalagem')
+  const priceIndex = header.indexOf('preco')
+  const updatedIndex = header.indexOf('atualizado')
+  if (keyIndex < 0 || priceIndex < 0) throw new Error('CSV incompatível: colunas "chave" e "preco" são obrigatórias.')
+
+  const entries: Record<string, PriceCatalogEntry> = {}
+  const now = new Date().toISOString()
+  for (const line of lines.slice(1)) {
+    const cells = parseCsvLine(line)
+    const key = cells[keyIndex]?.trim()
+    if (!key) continue
+    entries[key] = {
+      key,
+      productId: key.split('|')[0] ?? '',
+      productName: cells[productIndex]?.trim() || key,
+      packageLabel: cells[packageIndex]?.trim() || '',
+      unitPrice: parseBrazilianNumber(cells[priceIndex] ?? ''),
+      updatedAt: cells[updatedIndex]?.trim() || now
+    }
+  }
+  if (!Object.keys(entries).length) throw new Error('O CSV não possui nenhuma linha de preço válida.')
+  return { version: 1, updatedAt: now, entries }
+}
+
 export function parsePriceCatalog(text: string): PriceCatalog {
+  const trimmed = text.trim()
+  if (!trimmed) throw new Error('Arquivo de tabela de preços vazio.')
+  if (!trimmed.startsWith('{')) return parsePriceCatalogCsv(text)
   let parsed: unknown
   try { parsed = JSON.parse(text) } catch { throw new Error('Arquivo de tabela de preços inválido.') }
   const normalized = normalizePriceCatalog(parsed)
