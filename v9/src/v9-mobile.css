@@ -69,10 +69,32 @@
 
   .resultActions .secondaryButton { flex: 1 1 170px; }
 
+  .checkField {
+    display: grid !important;
+    grid-template-columns: 20px minmax(0, 1fr);
+    align-items: center;
+    justify-content: stretch;
+    gap: 10px;
+    min-height: 52px;
+    height: auto;
+    padding: 10px 12px;
+  }
+
+  .checkField input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    justify-self: start;
+  }
+
   .checkField span {
+    width: auto;
     min-width: 0;
+    margin: 0 !important;
     white-space: normal;
-    overflow-wrap: anywhere;
+    overflow-wrap: normal;
+    word-break: normal;
+    line-height: 1.3;
   }
 
   .packageTable {
