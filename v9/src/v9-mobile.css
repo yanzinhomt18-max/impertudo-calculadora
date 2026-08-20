@@ -40,4 +40,58 @@
   .appNav button small { font-size: 9px; line-height: 1.15; }
 
   .panel, .calculatorShell { margin-bottom: 28px; }
+
+  .calculatorShell,
+  .resultPanel,
+  .layerList,
+  .layerCard,
+  .packageTable,
+  .stepCard,
+  .fieldGrid,
+  .checkField {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .resultHead {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .resultActions {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .resultActions .secondaryButton { flex: 1 1 170px; }
+
+  .checkField span {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .packageTable {
+    overflow-x: hidden;
+  }
+
+  .packageRow {
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .packageRow > div {
+    min-width: 0;
+    border-right: 1px solid #e3ece7;
+    border-bottom: 1px solid #e3ece7;
+    overflow-wrap: anywhere;
+  }
+
+  .packageRow > div:nth-child(2n) { border-right: 0; }
+  .packageRow > div:nth-last-child(-n+2) { border-bottom: 0; }
 }
