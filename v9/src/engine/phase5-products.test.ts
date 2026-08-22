@@ -73,9 +73,31 @@ describe('fase 5 — referências técnicas internas IMPERTUDO', () => {
     expect(isProductAutoCalculable(product!)).toBe(false)
   })
 
-  it('mantém IMPERTUDO 01 bloqueado até confirmar a base dos 500 ml no concreto', () => {
+  it('calcula IMPERTUDO 01 para concreto a 500 ml por saco de cimento', () => {
     const product = productsById.get('impertudo-01')
     expect(product).toBeDefined()
-    expect(isProductAutoCalculable(product!)).toBe(false)
+    expect(isProductAutoCalculable(product!)).toBe(true)
+
+    const result = calculateProduct({
+      productId: 'impertudo-01',
+      optionId: 'cement-concrete',
+      cementBagCount: 10
+    })
+    expect(result.minQuantity).toBe(5)
+    expect(result.maxQuantity).toBe(5)
+    expect(result.unit).toBe('L')
+    expect(result.cementBagCount).toBe(10)
+    expect(result.recommendedMix).toBeNull()
+  })
+
+  it('calcula IMPERTUDO 01 para argamassa a 2 L por saco de cimento', () => {
+    const result = calculateProduct({
+      productId: 'impertudo-01',
+      optionId: 'cement-mortar',
+      cementBagCount: 10
+    })
+    expect(result.minQuantity).toBe(20)
+    expect(result.maxQuantity).toBe(20)
+    expect(result.unit).toBe('L')
   })
 })
