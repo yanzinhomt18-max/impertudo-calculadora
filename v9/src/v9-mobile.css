@@ -1,0 +1,119 @@
+@media (max-width: 680px) {
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: -22px;
+    margin-bottom: 12px;
+  }
+
+  .metrics article {
+    min-height: 88px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .metrics strong { font-size: 24px; line-height: 1; }
+  .metrics span { margin-top: 6px; font-size: 10px; line-height: 1.25; }
+
+  .appNav {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 6px;
+    padding: 6px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .appNav button {
+    flex: 0 0 158px;
+    min-height: 62px;
+    padding: 9px 11px;
+    scroll-snap-align: start;
+  }
+
+  .appNav button b { font-size: 13px; line-height: 1.15; }
+  .appNav button small { font-size: 9px; line-height: 1.15; }
+
+  .panel, .calculatorShell { margin-bottom: 28px; }
+
+  .calculatorShell,
+  .resultPanel,
+  .layerList,
+  .layerCard,
+  .packageTable,
+  .stepCard,
+  .fieldGrid,
+  .checkField {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .resultHead {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .resultActions {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .resultActions .secondaryButton { flex: 1 1 170px; }
+
+  .checkField {
+    display: grid !important;
+    grid-template-columns: 20px minmax(0, 1fr);
+    align-items: center;
+    justify-content: stretch;
+    gap: 10px;
+    min-height: 52px;
+    height: auto;
+    padding: 10px 12px;
+  }
+
+  .checkField input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    justify-self: start;
+  }
+
+  .checkField span {
+    width: auto;
+    min-width: 0;
+    margin: 0 !important;
+    white-space: normal;
+    overflow-wrap: normal;
+    word-break: normal;
+    line-height: 1.3;
+  }
+
+  .packageTable {
+    overflow-x: hidden;
+  }
+
+  .packageRow {
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .packageRow > div {
+    min-width: 0;
+    border-right: 1px solid #e3ece7;
+    border-bottom: 1px solid #e3ece7;
+    overflow-wrap: anywhere;
+  }
+
+  .packageRow > div:nth-child(2n) { border-right: 0; }
+  .packageRow > div:nth-last-child(-n+2) { border-bottom: 0; }
+}

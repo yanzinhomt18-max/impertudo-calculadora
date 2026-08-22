@@ -1,0 +1,43 @@
+name: Validate V9
+
+on:
+  push:
+    branches: [v9-main]
+    paths:
+      - 'v9/**'
+      - '.github/workflows/v9-validate.yml'
+  pull_request:
+    paths:
+      - 'v9/**'
+      - '.github/workflows/v9-validate.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install dependencies
+        run: npm install
+      - name: Validate database
+        run: npm run validate:db
+      - name: Test calculation engine
+        run: npm test
+      - name: Build V9
+        run: npm run build
+      - name: Validate production bundle
+        run: |
+          test -f dist/index.html
+          test -f dist/sw.js
+          test -f dist/precache.json
+          test -f dist/manifest.webmanifest
+          test -f dist/icon.svg
+          test -f dist/logo-impertudo.svg
+          grep -q "Calculadora Técnica IMPERTUDO" dist/index.html
+          grep -q '"/assets/' dist/precache.json
+          ! grep -q '__BUILD_ID__' dist/sw.js
