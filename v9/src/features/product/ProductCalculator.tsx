@@ -21,6 +21,9 @@ function isJointModel(model: string, optionId?: string): boolean {
 function isConcreteModel(model: string, optionId?: string): boolean {
   return model === 'concrete_dose' || (model === 'multi_mode' && Boolean(optionId?.startsWith('concrete')))
 }
+function isCementBagModel(model: string, optionId?: string): boolean {
+  return model === 'multi_mode' && Boolean(optionId?.startsWith('cement-'))
+}
 function isLinearModel(model: string, optionId?: string): boolean {
   return model === 'linear_yield' || (model === 'multi_mode' && Boolean(optionId?.startsWith('linear-')))
 }
@@ -40,6 +43,7 @@ export default function ProductCalculator({ preferredProductId }: { preferredPro
   const [jointWidthMm, setJointWidthMm] = useState(10)
   const [jointDepthMm, setJointDepthMm] = useState(10)
   const [concreteVolumeM3, setConcreteVolumeM3] = useState(10)
+  const [cementBagCount, setCementBagCount] = useState(10)
   const [linearLengthM, setLinearLengthM] = useState(50)
   const [linearWastePercent, setLinearWastePercent] = useState(5)
   const [result, setResult] = useState<ProductCalculationResult | null>(null)
@@ -62,6 +66,7 @@ export default function ProductCalculator({ preferredProductId }: { preferredPro
   const areaMode = isAreaModel(product.calculationModel, optionId)
   const jointMode = isJointModel(product.calculationModel, optionId)
   const concreteMode = isConcreteModel(product.calculationModel, optionId)
+  const cementBagMode = isCementBagModel(product.calculationModel, optionId)
   const linearMode = isLinearModel(product.calculationModel, optionId)
   const grauteVolumeMode = product.id === 'impertudo-graute-fluido' && concreteMode
   const technical = product.technical as { consumptionBasis?: string; coatsMin?: number; coatsMax?: number; notes?: string[] } | undefined
@@ -85,6 +90,7 @@ export default function ProductCalculator({ preferredProductId }: { preferredPro
         jointWidthMm: jointMode ? jointWidthMm : undefined,
         jointDepthMm: jointMode ? jointDepthMm : undefined,
         concreteVolumeM3: concreteMode ? concreteVolumeM3 : undefined,
+        cementBagCount: cementBagMode ? cementBagCount : undefined,
         linearLengthM: linearMode ? linearLengthM : undefined
       })
       setResult(next)
@@ -103,6 +109,7 @@ export default function ProductCalculator({ preferredProductId }: { preferredPro
         ...(result.rawAreaM2 ? [{ label: 'Área', value: `${format(result.rawAreaM2)} m²` }] : []),
         ...(result.areaWithWasteM2 ? [{ label: 'Área com perda', value: `${format(result.areaWithWasteM2)} m²` }] : []),
         ...(result.concreteVolumeM3 ? [{ label: grauteVolumeMode ? 'Volume de graute pronto' : 'Volume de concreto', value: `${format(result.concreteVolumeM3)} m³` }] : []),
+        ...(result.cementBagCount ? [{ label: 'Sacos de cimento', value: `${format(result.cementBagCount)} un.` }] : []),
         ...(result.linearLengthM ? [{ label: 'Comprimento', value: `${format(result.linearLengthM)} m` }] : []),
         ...(result.linearWithWasteM ? [{ label: 'Comprimento com margem', value: `${format(result.linearWithWasteM)} m` }] : []),
         { label: 'Base técnica', value: result.basisLabel },
@@ -138,6 +145,7 @@ export default function ProductCalculator({ preferredProductId }: { preferredPro
           {perCoat && <label className="stackField"><span>Demãos ({coatsMin} a {coatsMax})</span><input type="number" min={coatsMin} max={coatsMax} step="1" value={coats} onChange={(e) => setCoats(Number(e.target.value))} /></label>}
           {jointMode && <div className="fieldGrid three"><label><span>Comprimento (m)</span><input type="number" min="0" step="0.01" value={jointLengthM} onChange={(e) => setJointLengthM(Number(e.target.value))} /></label><label><span>Largura (mm)</span><input type="number" min="0" step="0.1" value={jointWidthMm} onChange={(e) => setJointWidthMm(Number(e.target.value))} /></label><label><span>Profundidade (mm)</span><input type="number" min="0" step="0.1" value={jointDepthMm} onChange={(e) => setJointDepthMm(Number(e.target.value))} /></label></div>}
           {concreteMode && <label className="stackField"><span>{grauteVolumeMode ? 'Volume de graute pronto (m³)' : 'Volume de concreto/argamassa (m³)'}</span><input type="number" min="0" step="0.01" value={concreteVolumeM3} onChange={(e) => { setConcreteVolumeM3(Number(e.target.value)); setResult(null); setSaved(false) }} /></label>}
+          {cementBagMode && <label className="stackField"><span>Quantidade de sacos de cimento (un.)</span><input type="number" min="0" step="1" value={cementBagCount} onChange={(e) => { setCementBagCount(Number(e.target.value)); setResult(null); setSaved(false) }} /></label>}
           {linearMode && <div className="fieldGrid two"><label><span>Comprimento linear (m)</span><input type="number" min="0" step="0.01" value={linearLengthM} onChange={(e) => { setLinearLengthM(Number(e.target.value)); setResult(null); setSaved(false) }} /></label><label><span>Margem / emendas (%)</span><input type="number" min="0" max="50" step="1" value={linearWastePercent} onChange={(e) => { setLinearWastePercent(Number(e.target.value)); setResult(null); setSaved(false) }} /></label></div>}
           {technical?.notes?.length ? <div className="contextNote">{technical.notes.map((note, index) => <span key={index}>{note}</span>)}</div> : null}
           <button className="primaryButton" onClick={handleCalculate}>Calcular produto</button>{error && <div className="errorBox">{error}</div>}
@@ -145,7 +153,7 @@ export default function ProductCalculator({ preferredProductId }: { preferredPro
       </div>
       {result && <section className="resultPanel compactResult">
         <div className="resultHead"><div><div className="eyebrow dark">RESULTADO</div><h2>{result.productName}</h2><p>{result.optionLabel} • {result.basisLabel}</p></div><button className="secondaryButton" onClick={handleAddToProject}>{saved ? 'Adicionado ✓' : 'Adicionar ao Projeto/Obra'}</button></div>
-        <div className="resultMetrics">{result.areaWithWasteM2 && <article><strong>{format(result.areaWithWasteM2)} m²</strong><span>Área considerada</span></article>}{result.concreteVolumeM3 && <article><strong>{format(result.concreteVolumeM3)} m³</strong><span>Volume considerado</span></article>}{result.linearWithWasteM && <article><strong>{format(result.linearWithWasteM)} m</strong><span>Comprimento considerado</span></article>}<article><strong>{format(result.minQuantity)} {result.unit}</strong><span>Necessidade mínima</span></article><article><strong>{format(result.maxQuantity)} {result.unit}</strong><span>Referência máxima</span></article></div>
+        <div className="resultMetrics">{result.areaWithWasteM2 && <article><strong>{format(result.areaWithWasteM2)} m²</strong><span>Área considerada</span></article>}{result.concreteVolumeM3 && <article><strong>{format(result.concreteVolumeM3)} m³</strong><span>Volume considerado</span></article>}{result.cementBagCount && <article><strong>{format(result.cementBagCount)} un.</strong><span>Sacos de cimento</span></article>}{result.linearWithWasteM && <article><strong>{format(result.linearWithWasteM)} m</strong><span>Comprimento considerado</span></article>}<article><strong>{format(result.minQuantity)} {result.unit}</strong><span>Necessidade mínima</span></article><article><strong>{format(result.maxQuantity)} {result.unit}</strong><span>Referência máxima</span></article></div>
         {result.packages.length > 0 && <div className="packageTable">{result.packages.map((item, index) => <div className="packageRow" key={index}><div><span>Embalagem</span><strong>{packageLabel(item.package)}</strong></div><div><span>Compra mínima</span><strong>{item.minCount} un.</strong></div><div className="recommended"><span>Compra recomendada</span><strong>{item.maxCount} un.</strong></div><div><span>Sobra</span><strong>{format(item.maxSurplus)} {item.unit}</strong></div></div>)}</div>}
         {result.recommendedMix && result.recommendedMix.items.length > 1 && <div className="mixBox"><strong>Combinação com menor sobra</strong><span>{result.recommendedMix.items.map((item) => `${item.count} × ${packageLabel(item.package)}`).join(' + ')}</span><small>Sobra estimada: {format(result.recommendedMix.surplus)} {result.unit}</small></div>}
         {result.notes.length > 0 && <div className="technicalNotes"><strong>Observações do cálculo</strong>{result.notes.map((note, index) => <p key={index}>{note}</p>)}</div>}
