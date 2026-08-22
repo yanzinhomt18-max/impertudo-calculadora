@@ -27,7 +27,7 @@ interface JointReference {
 interface ModeRule {
   id: string
   label?: string
-  kind?: 'coverage_area' | 'coverage_linear' | 'concrete' | 'consumption'
+  kind?: 'coverage_area' | 'coverage_linear' | 'concrete' | 'cement_bag' | 'consumption'
   consumption?: number
   min?: number
   max?: number
@@ -53,6 +53,7 @@ export interface ProductCalculationInput {
   jointWidthMm?: number
   jointDepthMm?: number
   concreteVolumeM3?: number
+  cementBagCount?: number
   linearLengthM?: number
 }
 
@@ -66,6 +67,7 @@ export interface ProductCalculationResult {
   areaWithWasteM2?: number
   wastePercent?: number
   concreteVolumeM3?: number
+  cementBagCount?: number
   linearLengthM?: number
   linearWithWasteM?: number
   minQuantity: number
@@ -146,6 +148,7 @@ export function getProductOptions(product: ProductRecord): ProductOption[] {
 function supportedMode(mode: ModeRule): boolean {
   if (mode.kind === 'coverage_area') return mode.unit === 'm2' && Boolean(mode.packageType)
   if (mode.kind === 'coverage_linear') return mode.unit === 'm' && Boolean(mode.packageType)
+  if (mode.kind === 'cement_bag') return typeof mode.consumption === 'number' && mode.consumption > 0
   if (mode.kind === 'concrete' || mode.id === 'concrete') return typeof mode.consumption === 'number' || typeof mode.min === 'number'
   if (mode.id === 'joint') return typeof mode.consumption === 'number' && typeof mode.jointWidthMm === 'number' && typeof mode.jointDepthMm === 'number'
   if (mode.id === 'area') return typeof mode.consumption === 'number' || typeof mode.min === 'number'
@@ -348,6 +351,37 @@ function concreteByDose(product: ProductRecord, input: ProductCalculationInput, 
   }
 }
 
+function cementBagByDose(product: ProductRecord, input: ProductCalculationInput, mode: ModeRule): ProductCalculationResult {
+  const cementBagCount = requirePositive(input.cementBagCount, 'Quantidade de sacos de cimento')
+  const dose = typeof mode.consumption === 'number' ? mode.consumption : mode.max
+  if (typeof dose !== 'number' || dose <= 0) throw new Error(`Dosagem por saco de cimento não cadastrada corretamente para ${product.name}.`)
+  const normalized = mode.unit.toLowerCase().replace(/\s/g, '')
+  if (!normalized.includes('/saco')) throw new Error(`Unidade de dosagem ainda não suportada: ${mode.unit}`)
+  const unit = parseConsumptionUnit(mode.unit)
+  const quantity = roundQuantity(cementBagCount * dose, 4)
+  const packs = packageResult(product, quantity, quantity, unit, mode.packageType)
+  return {
+    productId: product.id,
+    productName: product.name,
+    optionId: mode.id,
+    optionLabel: mode.label ?? 'Por saco de cimento',
+    calculationModel: product.calculationModel,
+    cementBagCount,
+    minQuantity: quantity,
+    maxQuantity: quantity,
+    unit,
+    basisLabel: `${dose} ${mode.unit}`,
+    ...packs,
+    notes: [
+      `Dosagem aplicada a ${cementBagCount} saco(s) de cimento.`,
+      ...(packs.recommendedMix ? [] : ['Resultado técnico em litros. A conversão para as embalagens cadastradas em kg depende da densidade ou da confirmação do volume comercial.'])
+    ],
+    variantKey: mode.id,
+    variantLabel: mode.label,
+    packageTypeConstraint: mode.packageType
+  }
+}
+
 function coverageByArea(product: ProductRecord, input: ProductCalculationInput, mode: ModeRule): ProductCalculationResult {
   const area = areaValues(input)
   if (!mode.packageType) throw new Error('Variante comercial não cadastrada para cobertura por área.')
@@ -408,6 +442,7 @@ function multiMode(product: ProductRecord, input: ProductCalculationInput): Prod
   if (!mode) throw new Error(`Modo de cálculo não encontrado para ${product.name}.`)
   if (mode.kind === 'coverage_area') return coverageByArea(product, input, mode)
   if (mode.kind === 'coverage_linear') return coverageByLinear(product, input, mode)
+  if (mode.kind === 'cement_bag') return cementBagByDose(product, input, mode)
   if (mode.kind === 'concrete' || mode.id === 'concrete') return concreteByDose(product, input, mode)
   if (mode.id === 'area') {
     const min = typeof mode.min === 'number' ? mode.min : mode.consumption
